@@ -828,7 +828,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">Produto</h2>
+              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Produto</h2>
               <p className="text-xs text-slate-500">Confira os valores e siga para o investimento.</p>
             </div>
           </div>
@@ -847,7 +847,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
             {/* Título e preço */}
             <div className="flex items-center justify-between mt-4 pb-3 border-b border-slate-100">
-              <h3 className="text-base font-extrabold text-slate-900">{currentPlan.name}</h3>
+              <h3 className="text-base font-extrabold text-slate-900 nexus-title">{currentPlan.name}</h3>
               <span className="text-lg font-extrabold text-blue-800">{formatBRL(currentPlan.price)}</span>
             </div>
 
@@ -914,7 +914,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <Crown className="w-6 h-6 fill-amber-500" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">VIP</h2>
+              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">VIP</h2>
               <p className="text-xs text-slate-500">Recarga pessoal, equipe e valor diário.</p>
             </div>
           </div>
@@ -929,7 +929,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 Nível Atual: VIP {user.vipLevel}
               </span>
             </div>
-            <h3 className="text-lg font-extrabold mt-2">
+            <h3 className="text-lg font-extrabold mt-2 nexus-title">
               {user.vipLevel === 0 ? 'Sem VIP Ativo' : `Membro VIP ${user.vipLevel}`}
             </h3>
             <p className="text-xs text-slate-300 mt-1">
@@ -1017,7 +1017,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 Etapa {currentGuide.step} de {PLATFORM_GUIDE_STEPS.length}
               </span>
             </div>
-            <h2 className="text-lg font-extrabold text-slate-900">Como usar a plataforma</h2>
+            <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Como usar a plataforma</h2>
             <p className="text-xs text-slate-500 mt-0.5">
               Navegue pelas etapas abaixo para dominar todas as ferramentas de rendimento.
             </p>
@@ -1039,7 +1039,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <span className="inline-block text-[11px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-2.5 py-0.5 rounded-md mb-2">
               {currentGuide.highlight}
             </span>
-            <h3 className="text-base font-extrabold text-slate-900">{currentGuide.title}</h3>
+            <h3 className="text-base font-extrabold text-slate-900 nexus-title">{currentGuide.title}</h3>
             <p className="text-sm text-slate-600 leading-relaxed mt-2">{currentGuide.desc}</p>
 
             <div className="grid grid-cols-2 gap-3 mt-6">
@@ -1095,7 +1095,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <CreditCard className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">Chave PIX</h2>
+              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Chave PIX</h2>
               <p className="text-xs text-slate-500">Cadastre onde deseja receber os saques.</p>
             </div>
           </div>
@@ -1183,7 +1183,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <ArrowUpRight className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">Retirada</h2>
+              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Retirada</h2>
               <p className="text-xs text-slate-500">O saque sai só da carteira de rendimentos e comissões.</p>
             </div>
           </div>
@@ -1293,7 +1293,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 <Award className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-lg font-extrabold text-slate-900">Insígnias</h2>
+                <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Insígnias</h2>
                 <p className="text-xs text-slate-500">As conquistas e recompensas definidas no painel.</p>
               </div>
             </div>
@@ -1374,7 +1374,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <History className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">Histórico & Cupons</h2>
+              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Histórico & Cupons</h2>
               <p className="text-xs text-slate-500">Entradas e saídas de pontos e bônus das suas carteiras.</p>
             </div>
           </div>
@@ -1433,7 +1433,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <History className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">
+              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">
                 {isDeposit ? 'Registros de depósito' : 'Registros de retirada'}
               </h2>
               <p className="text-xs text-slate-500">
@@ -1514,7 +1514,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <Lock className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">Senha</h2>
+              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Senha</h2>
               <p className="text-xs text-slate-500">A nova senha precisa ter pelo menos 5 caracteres.</p>
             </div>
           </div>
@@ -1527,7 +1527,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <span>SEGURANÇA</span>
             </div>
             <div>
-              <h3 className="text-sm font-extrabold text-slate-900">Troque a senha da conta</h3>
+              <h3 className="text-sm font-extrabold text-slate-900 nexus-title">Troque a senha da conta</h3>
               <p className="text-xs text-slate-500">Não compartilhe e evite repetir a senha de outros serviços.</p>
             </div>
 
@@ -1594,7 +1594,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-800 flex items-center justify-center">
               {isPoints ? <Sparkles className="w-6 h-6" /> : <Crown className="w-6 h-6 text-amber-600" />}
             </div>
-            <h2 className="text-lg font-extrabold text-slate-900">
+            <h2 className="text-lg font-extrabold text-slate-900 nexus-title">
               {isPoints ? 'Introdução aos Pontos Nexus' : 'Introdução ao Clube VIP'}
             </h2>
             <p className="text-xs text-slate-600 leading-relaxed">
@@ -1681,7 +1681,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <div className="flex items-center justify-between px-1 mb-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-sm bg-blue-800" />
-                <h3 className="text-sm font-extrabold text-slate-900">Planos disponíveis</h3>
+                <h3 className="text-sm font-extrabold text-slate-900 nexus-title">Planos disponíveis</h3>
               </div>
               <button
                 onClick={() => {
@@ -1736,7 +1736,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">Investir</h2>
+              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Investir</h2>
               <p className="text-xs text-slate-500">
                 Acompanhe seus investimentos em tempo real.
               </p>
@@ -1951,7 +1951,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <Wallet className="w-3.5 h-3.5" />
               <span>CARTEIRA NEXUS AÇÕES</span>
             </div>
-            <h2 className="text-xl font-extrabold text-slate-900 mt-2">
+            <h2 className="text-xl font-extrabold text-slate-900 mt-2 nexus-title">
               Adicione saldo à sua carteira!
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">Escolha o valor e gere o PIX instantâneo.</p>
@@ -1996,7 +1996,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 R$
               </div>
               <div>
-                <h3 className="text-sm font-extrabold text-slate-900">Outro valor</h3>
+                <h3 className="text-sm font-extrabold text-slate-900 nexus-title">Outro valor</h3>
                 <p className="text-[11px] text-slate-500">Digite o valor que deseja depositar.</p>
               </div>
             </div>
@@ -2054,7 +2054,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">Equipe</h2>
+              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Equipe</h2>
               <p className="text-xs text-slate-500">
                 Nível A é o indicado direto. Nível B é o indicado do indicado.
               </p>
@@ -2262,7 +2262,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <Crown className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">Perfil</h2>
+              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Perfil</h2>
               <p className="text-xs text-slate-500">Carteira, depósitos, saques e atalhos da conta.</p>
             </div>
           </div>
@@ -2575,7 +2575,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 <div className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700">
                   NEXUS AÇÕES
                 </div>
-                <h3 className="text-lg font-extrabold text-slate-900 mt-0.5">
+                <h3 className="text-lg font-extrabold text-slate-900 mt-0.5 nexus-title">
                   Bem-vindo à NEXUS AÇÕES
                 </h3>
                 <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
@@ -2616,7 +2616,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-extrabold uppercase text-blue-700">PAGAMENTO INSTANTÂNEO</span>
-                  <h3 className="text-lg font-extrabold text-slate-900">PIX NEXUS AÇÕES</h3>
+                  <h3 className="text-lg font-extrabold text-slate-900 nexus-title">PIX NEXUS AÇÕES</h3>
                 </div>
                 <button
                   onClick={() => setPixModalData(null)}
