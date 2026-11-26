@@ -2304,9 +2304,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
   // ESTRUTURA GLOBAL (TOP BAR, CONTAINER MOBILE-FIRST, AVISOS E BOTTOM NAV)
   // ==========================================================================
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex justify-center font-sans">
+    <div className="min-h-screen w-full bg-slate-100 text-slate-900 flex justify-center font-sans">
       {/* Container centralizado estilo App Mobile */}
-      <div className="w-full max-w-md bg-[#f1f5f9] min-h-screen relative shadow-2xl flex flex-col">
+      <div className="w-full max-w-none bg-[#f1f5f9] min-h-screen relative shadow-none flex flex-col">
         {/* ====================================================================
             1. CABEÇALHO FIXO (TOP BAR)
            ==================================================================== */}
@@ -2363,7 +2363,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             10. AVISOS FIXOS NO RODAPÉ (ACIMA DA BARRA DE NAVEGAÇÃO)
            ==================================================================== */}
         {showNotices && (
-          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md z-20 px-3 pb-2 pointer-events-none">
+          <div className="fixed bottom-16 inset-x-0 w-full z-20 px-3 pb-2 pointer-events-none">
             <div className="pointer-events-auto space-y-1.5">
               <div className="bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg rounded-xl p-2.5 relative">
                 <button
@@ -2392,7 +2392,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
         {/* ====================================================================
             4. NAVEGAÇÃO INFERIOR FIXA (BOTTOM NAVIGATION BAR)
            ==================================================================== */}
-        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30 bg-white border-t border-slate-200/90 h-16 px-2 flex items-center justify-around shadow-[0_-4px_12px_rgba(15,23,42,0.05)]">
+        <nav className="fixed bottom-0 inset-x-0 w-full z-30 bg-white border-t border-slate-200/90 h-16 px-2 flex items-center justify-around shadow-[0_-4px_12px_rgba(15,23,42,0.05)]">
           {/* Início */}
           <button
             onClick={() => navigateToTab('inicio')}
