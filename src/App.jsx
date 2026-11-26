@@ -293,10 +293,10 @@ const PlanVisualBanner = ({ plan, heightClass = 'h-40' }) => {
   return (
     <div className={`plan-banner relative w-full ${heightClass} bg-gradient-to-br ${plan.gradient} overflow-hidden flex items-center justify-between p-5 select-none`}>
       <img src={plan.image} alt={`Imagem ilustrativa de ${plan.subtitle}`} className="plan-banner-image absolute inset-0 w-full h-full object-cover" loading="lazy" />
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/55 to-slate-950/25" />
-      <div className="plan-banner-glow absolute -right-10 -top-12 w-44 h-44 rounded-full bg-cyan-300/25 blur-3xl" />
+      <div className="absolute inset-0 z-[1] bg-gradient-to-r from-slate-950/90 via-slate-950/55 to-slate-950/25" />
+      <div className="plan-banner-glow absolute z-[2] -right-10 -top-12 w-44 h-44 rounded-full bg-cyan-300/25 blur-3xl" />
       {/* Padrão geométrico de gráfico financeiro no fundo */}
-      <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 400 160" preserveAspectRatio="none">
+      <svg className="absolute z-[3] inset-0 w-full h-full opacity-20" viewBox="0 0 400 160" preserveAspectRatio="none">
         <defs>
           <linearGradient id={`grad-${plan.id}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.6" />
