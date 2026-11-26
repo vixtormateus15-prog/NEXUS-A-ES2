@@ -726,6 +726,48 @@ function Dashboard({ firebaseUser, onSignOut }) {
   // ==========================================================================
   // COMPONENTE REUTILIZÁVEL: CARTÃO DE RESUMO DO USUÁRIO
   // ==========================================================================
+  const AccountInsights = () => {
+    const metrics = [
+      { label: 'Saldo de depósito', value: user.depositBalance, color: 'from-blue-600 to-cyan-400', dot: 'bg-cyan-400' },
+      { label: 'Disponível para saque', value: user.withdrawableBalance, color: 'from-emerald-500 to-teal-300', dot: 'bg-emerald-400' },
+      { label: 'Comissões', value: user.commissionBalance, color: 'from-violet-600 to-fuchsia-400', dot: 'bg-fuchsia-400' },
+      { label: 'Pontos Nexus', value: user.nexusPoints, color: 'from-amber-500 to-orange-300', dot: 'bg-amber-400', points: true }
+    ];
+    const maxValue = Math.max(...metrics.map((item) => Number(item.value) || 0), 0);
+    const total = metrics.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+    return (
+      <section className="relative overflow-hidden rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-4 text-white shadow-lg">
+        <div className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div><div className="text-[10px] font-extrabold uppercase tracking-[.2em] text-cyan-300">NEXUS • PAINEL VISUAL</div><h3 className="mt-1 text-base font-black text-white">Visão da sua carteira</h3><p className="mt-1 text-[11px] text-blue-100/75">Indicadores vinculados à sua conta</p></div>
+          <div className="rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-right"><div className="text-[9px] font-bold uppercase tracking-wider text-cyan-200">Total exibido</div><div className="mt-0.5 text-sm font-black text-white">{formatBRL(total)}</div></div>
+        </div>
+        <div className="relative mt-5 space-y-3">
+          {metrics.map((item) => {
+            const value = Number(item.value) || 0;
+            const width = maxValue > 0 ? (value > 0 ? Math.max(3, (value / maxValue) * 100) : 0) : 0;
+            return <div key={item.label}><div className="mb-1.5 flex items-center justify-between gap-2 text-[11px]"><span className="flex items-center gap-2 font-semibold text-blue-50"><span className={`h-2 w-2 rounded-full ${item.dot}`} />{item.label}</span><strong className="text-white">{item.points ? value.toFixed(2).replace('.', ',') : formatBRL(value)}</strong></div><div className="h-2.5 overflow-hidden rounded-full bg-white/10 ring-1 ring-white/10"><div className={`h-full rounded-full bg-gradient-to-r ${item.color} transition-all duration-700`} style={{ width: `${width}%` }} /></div></div>;
+          })}
+        </div>
+        {maxValue === 0 && <div className="relative mt-4 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] leading-relaxed text-blue-100">Ainda não há movimentações confirmadas para formar as barras. Os gráficos serão preenchidos conforme dados reais forem registrados.</div>}
+        <div className="relative mt-4 grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 p-3"><div className="text-[10px] font-bold uppercase tracking-wider text-cyan-200">Planos ativos</div><div className="mt-1 text-xl font-black">{activeInvestments.length}</div></div>
+          <div className="rounded-xl border border-fuchsia-300/20 bg-fuchsia-300/10 p-3"><div className="text-[10px] font-bold uppercase tracking-wider text-fuchsia-200">Planos encerrados</div><div className="mt-1 text-xl font-black">{completedInvestments.length}</div></div>
+        </div>
+        <p className="relative mt-3 text-[9px] leading-relaxed text-blue-100/60">Gráfico informativo. Não representa previsão ou garantia de rentabilidade.</p>
+      </section>
+    );
+  };
+
+  const PlanPriceChart = () => {
+    const highestPrice = Math.max(...plans.map((plan) => plan.price), 1);
+    return <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-2"><div><div className="text-[10px] font-extrabold uppercase tracking-[.18em] text-violet-600">COMPARATIVO</div><h3 className="mt-1 text-sm font-black text-slate-900">Valor de entrada por plano</h3><p className="mt-0.5 text-[10px] text-slate-500">Comparação dos preços cadastrados</p></div><div className="rounded-xl bg-violet-50 p-2.5 text-violet-700"><TrendingUp className="h-5 w-5" /></div></div>
+      <div className="mt-4 space-y-3">{plans.map((plan, index) => <div key={plan.id}><div className="mb-1 flex items-center justify-between gap-2 text-[11px]"><span className="font-bold text-slate-700">{plan.name}</span><span className="font-extrabold text-slate-900">{formatBRL(plan.price)}</span></div><div className="h-3 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full bg-gradient-to-r ${['from-blue-600 to-cyan-400','from-violet-600 to-fuchsia-400','from-emerald-500 to-teal-300','from-amber-500 to-orange-400'][index % 4]}`} style={{ width: `${Math.max(2, (plan.price / highestPrice) * 100)}%` }} /></div></div>)}</div>
+      <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-800">Os valores mostram somente o preço de entrada. Não indicam desempenho nem retorno futuro.</p>
+    </section>;
+  };
+
   const UserSummaryCard = () => (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 mb-3">
       {/* Linha superior: Avatar, ID/UID e Badge VIP */}
@@ -1623,6 +1665,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
           {/* Resumo da Conta */}
           <UserSummaryCard />
 
+          <AccountInsights />
+
           {/* Cartão CLUBE VIP */}
           <button
             onClick={() => setSubPage('vip')}
@@ -1766,6 +1810,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
               </button>
             ))}
           </div>
+
+          {investSubTab === 'investir' && <PlanPriceChart />}
 
           {/* Conteúdo Sub-aba: INVESTIR (Vitrine) */}
           {investSubTab === 'investir' && (
