@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth, firebaseConfigured } from './firebase';
+import { get, ref, set } from 'firebase/database';
+import { auth, database, firebaseConfigured } from './firebase';
 import AuthScreen from './AuthScreen.jsx';
 import {
   Menu,
@@ -406,6 +407,40 @@ function Dashboard({ firebaseUser, onSignOut }) {
   const [guideStepIndex, setGuideStepIndex] = useState(0);
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
 
+  // Cria e carrega somente o perfil básico vinculado ao UID autenticado.
+  // Saldos, investimentos e pagamentos não são gravados pelo navegador.
+  useEffect(() => {
+    if (!database || !firebaseUser?.uid) return undefined;
+    let active = true;
+    const profileRef = ref(database, `users/${firebaseUser.uid}/profile`);
+    get(profileRef)
+      .then(async (snapshot) => {
+        if (!active) return;
+        if (!snapshot.exists()) {
+          await set(profileRef, {
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || (firebaseUser.email || '').split('@')[0],
+            createdAt: Date.now()
+          });
+        } else {
+          const profile = snapshot.val() || {};
+          setUser((prev) => ({
+            ...prev,
+            email: profile.email || firebaseUser.email || '',
+            id: profile.displayName || prev.id
+          }));
+        }
+      })
+      .catch(() => {
+        if (active) showProfileError();
+      });
+    return () => { active = false; };
+  }, [firebaseUser.uid]);
+
+  const showProfileError = () => {
+    setToast({ message: 'Não foi possível carregar seu perfil. Confira as regras do Realtime Database.', type: 'error' });
+  };
+
   // Helper de Toast
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -439,6 +474,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
   // Comprar / Investir em um plano
   const handleInvestPlan = (plan) => {
+    showToast('Investimentos estão temporariamente bloqueados até existir processamento e validação financeira no servidor.', 'warning');
+    return;
     if (plan.bought >= plan.limit) {
       showToast(`Limite de ${plan.limit} compra(s) atingido para este plano.`, 'error');
       return;
@@ -507,6 +544,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
   // Coletar / Acelerar rendimento de um plano ativo
   const handleCollectYield = (instanceId) => {
+    showToast('A distribuição de rendimentos ainda não está habilitada. Nenhum saldo foi creditado.', 'warning');
+    return;
     const target = activeInvestments.find((item) => item.instanceId === instanceId);
     if (!target) return;
 
@@ -557,6 +596,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
   // Gerar PIX para depósito
   const handleGeneratePix = () => {
+    showToast('PIX ainda não está integrado a um provedor. Nenhum código de pagamento foi gerado.', 'warning');
+    return;
     const val = parseFloat(depositAmount);
     if (isNaN(val) || val < 50 || val > 5000) {
       showToast('Informe um valor válido entre R$ 50,00 e R$ 5.000,00.', 'error');
@@ -569,6 +610,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
   // Simular confirmação do pagamento PIX
   const handleConfirmPixSimulation = () => {
+    setPixModalData(null);
+    showToast('Confirmação simulada desativada. Depósitos só serão reconhecidos após confirmação do provedor no servidor.', 'warning');
+    return;
     if (!pixModalData) return;
     const val = pixModalData.amount;
     const isFirstDeposit = depositHistory.length === 0;
@@ -622,6 +666,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
   // Solicitar Saque
   const handleRequestWithdraw = () => {
+    showToast('Saques ainda não estão conectados a um provedor seguro. Nenhuma solicitação ou débito foi realizado.', 'warning');
+    return;
     if (!user.pixKey) {
       showToast('Cadastre sua chave PIX antes de solicitar o saque.', 'warning');
       setTempPixType(user.pixKeyType);
