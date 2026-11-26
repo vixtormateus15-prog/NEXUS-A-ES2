@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { get, ref, set } from 'firebase/database';
+import { auth, database, firebaseConfigured } from './firebase';
+import AuthScreen from './AuthScreen.jsx';
 import {
   Menu,
   Bell,
@@ -343,7 +347,7 @@ const PlanVisualBanner = ({ plan, heightClass = 'h-40' }) => {
 // ============================================================================
 // COMPONENTE PRINCIPAL DA APLICAÇÃO
 // ============================================================================
-export default function App() {
+function Dashboard({ firebaseUser, onSignOut }) {
   // Estados de Navegação
   const [activeTab, setActiveTab] = useState('inicio'); // inicio, investir, depositar, equipe, perfil
   const [subPage, setSubPage] = useState(null); // null, plan-detail, vip, course, pix-method, badges, coupons, deposit-records, withdraw-records, change-password, withdraw, vip-intro, points-intro
@@ -361,14 +365,15 @@ export default function App() {
 
   // Estado Financeiro e do Usuário
   const [user, setUser] = useState({
-    id: '7498102534',
-    uid: 'NX001342',
+    id: String(firebaseUser.uid).slice(-10),
+    uid: firebaseUser.uid,
+    email: firebaseUser.email || '',
     vipLevel: 0,
     depositBalance: 0.00,
     withdrawableBalance: 0.00,
-    nexusPoints: 0.50,
+    nexusPoints: 0.00,
     commissionBalance: 0.00,
-    inviteCode: '1YR1RA',
+    inviteCode: '',
     pixKeyType: 'CPF',
     pixKey: '',
   });
@@ -401,6 +406,40 @@ export default function App() {
   const [teamSearch, setTeamSearch] = useState('');
   const [guideStepIndex, setGuideStepIndex] = useState(0);
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
+
+  // Cria e carrega somente o perfil básico vinculado ao UID autenticado.
+  // Saldos, investimentos e pagamentos não são gravados pelo navegador.
+  useEffect(() => {
+    if (!database || !firebaseUser?.uid) return undefined;
+    let active = true;
+    const profileRef = ref(database, `profiles/${firebaseUser.uid}`);
+    get(profileRef)
+      .then(async (snapshot) => {
+        if (!active) return;
+        if (!snapshot.exists()) {
+          await set(profileRef, {
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || (firebaseUser.email || '').split('@')[0],
+            createdAt: Date.now()
+          });
+        } else {
+          const profile = snapshot.val() || {};
+          setUser((prev) => ({
+            ...prev,
+            email: profile.email || firebaseUser.email || '',
+            id: profile.displayName || prev.id
+          }));
+        }
+      })
+      .catch(() => {
+        if (active) showProfileError();
+      });
+    return () => { active = false; };
+  }, [firebaseUser.uid]);
+
+  const showProfileError = () => {
+    setToast({ message: 'Não foi possível carregar seu perfil. Confira as regras do Realtime Database.', type: 'error' });
+  };
 
   // Helper de Toast
   const showToast = (message, type = 'success') => {
@@ -435,6 +474,8 @@ export default function App() {
 
   // Comprar / Investir em um plano
   const handleInvestPlan = (plan) => {
+    showToast('Investimentos estão temporariamente bloqueados até existir processamento e validação financeira no servidor.', 'warning');
+    return;
     if (plan.bought >= plan.limit) {
       showToast(`Limite de ${plan.limit} compra(s) atingido para este plano.`, 'error');
       return;
@@ -503,6 +544,8 @@ export default function App() {
 
   // Coletar / Acelerar rendimento de um plano ativo
   const handleCollectYield = (instanceId) => {
+    showToast('A distribuição de rendimentos ainda não está habilitada. Nenhum saldo foi creditado.', 'warning');
+    return;
     const target = activeInvestments.find((item) => item.instanceId === instanceId);
     if (!target) return;
 
@@ -553,6 +596,8 @@ export default function App() {
 
   // Gerar PIX para depósito
   const handleGeneratePix = () => {
+    showToast('PIX ainda não está integrado a um provedor. Nenhum código de pagamento foi gerado.', 'warning');
+    return;
     const val = parseFloat(depositAmount);
     if (isNaN(val) || val < 50 || val > 5000) {
       showToast('Informe um valor válido entre R$ 50,00 e R$ 5.000,00.', 'error');
@@ -565,6 +610,9 @@ export default function App() {
 
   // Simular confirmação do pagamento PIX
   const handleConfirmPixSimulation = () => {
+    setPixModalData(null);
+    showToast('Confirmação simulada desativada. Depósitos só serão reconhecidos após confirmação do provedor no servidor.', 'warning');
+    return;
     if (!pixModalData) return;
     const val = pixModalData.amount;
     const isFirstDeposit = depositHistory.length === 0;
@@ -618,6 +666,8 @@ export default function App() {
 
   // Solicitar Saque
   const handleRequestWithdraw = () => {
+    showToast('Saques ainda não estão conectados a um provedor seguro. Nenhuma solicitação ou débito foi realizado.', 'warning');
+    return;
     if (!user.pixKey) {
       showToast('Cadastre sua chave PIX antes de solicitar o saque.', 'warning');
       setTempPixType(user.pixKeyType);
@@ -2254,9 +2304,9 @@ export default function App() {
   // ESTRUTURA GLOBAL (TOP BAR, CONTAINER MOBILE-FIRST, AVISOS E BOTTOM NAV)
   // ==========================================================================
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex justify-center font-sans">
+    <div className="min-h-screen w-full bg-slate-100 text-slate-900 flex justify-center font-sans">
       {/* Container centralizado estilo App Mobile */}
-      <div className="w-full max-w-md bg-[#f1f5f9] min-h-screen relative shadow-2xl flex flex-col">
+      <div className="w-full max-w-none bg-[#f1f5f9] min-h-screen relative shadow-none flex flex-col">
         {/* ====================================================================
             1. CABEÇALHO FIXO (TOP BAR)
            ==================================================================== */}
@@ -2313,7 +2363,7 @@ export default function App() {
             10. AVISOS FIXOS NO RODAPÉ (ACIMA DA BARRA DE NAVEGAÇÃO)
            ==================================================================== */}
         {showNotices && (
-          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md z-20 px-3 pb-2 pointer-events-none">
+          <div className="fixed bottom-16 inset-x-0 w-full z-20 px-3 pb-2 pointer-events-none">
             <div className="pointer-events-auto space-y-1.5">
               <div className="bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg rounded-xl p-2.5 relative">
                 <button
@@ -2342,7 +2392,7 @@ export default function App() {
         {/* ====================================================================
             4. NAVEGAÇÃO INFERIOR FIXA (BOTTOM NAVIGATION BAR)
            ==================================================================== */}
-        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30 bg-white border-t border-slate-200/90 h-16 px-2 flex items-center justify-around shadow-[0_-4px_12px_rgba(15,23,42,0.05)]">
+        <nav className="fixed bottom-0 inset-x-0 w-full z-30 bg-white border-t border-slate-200/90 h-16 px-2 flex items-center justify-around shadow-[0_-4px_12px_rgba(15,23,42,0.05)]">
           {/* Início */}
           <button
             onClick={() => navigateToTab('inicio')}
@@ -2463,6 +2513,7 @@ export default function App() {
                 <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-400">
                   <div>ID: {user.id} • UID: {user.uid}</div>
                   <div className="mt-0.5">NEXUS AÇÕES © 2026</div>
+                  <button onClick={onSignOut} className="mt-3 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Sair da conta</button>
                 </div>
               </div>
               <div className="flex-1" onClick={() => setDrawerOpen(false)} />
@@ -2627,4 +2678,37 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+// Autenticação real: o painel só é exibido após sessão Firebase válida.
+export default function App() {
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    if (!auth) {
+      setAuthReady(true);
+      return undefined;
+    }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setFirebaseUser(currentUser);
+      setAuthReady(true);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleSignOut = async () => {
+    if (auth) await signOut(auth);
+  };
+
+  if (!firebaseConfigured || !auth) {
+    return <AuthScreen configurationMissing />;
+  }
+  if (!authReady) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">Carregando NEXUS AÇÕES...</div>;
+  }
+  if (!firebaseUser) {
+    return <AuthScreen />;
+  }
+  return <Dashboard firebaseUser={firebaseUser} onSignOut={handleSignOut} />;
 }
