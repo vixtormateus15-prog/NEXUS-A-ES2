@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth, firebaseConfigured } from './firebase';
+import AuthScreen from './AuthScreen.jsx';
 import {
   Menu,
   Bell,
@@ -343,7 +346,7 @@ const PlanVisualBanner = ({ plan, heightClass = 'h-40' }) => {
 // ============================================================================
 // COMPONENTE PRINCIPAL DA APLICAÇÃO
 // ============================================================================
-export default function App() {
+function Dashboard({ firebaseUser, onSignOut }) {
   // Estados de Navegação
   const [activeTab, setActiveTab] = useState('inicio'); // inicio, investir, depositar, equipe, perfil
   const [subPage, setSubPage] = useState(null); // null, plan-detail, vip, course, pix-method, badges, coupons, deposit-records, withdraw-records, change-password, withdraw, vip-intro, points-intro
@@ -361,14 +364,15 @@ export default function App() {
 
   // Estado Financeiro e do Usuário
   const [user, setUser] = useState({
-    id: '7498102534',
-    uid: 'NX001342',
+    id: String(firebaseUser.uid).slice(-10),
+    uid: firebaseUser.uid,
+    email: firebaseUser.email || '',
     vipLevel: 0,
     depositBalance: 0.00,
     withdrawableBalance: 0.00,
-    nexusPoints: 0.50,
+    nexusPoints: 0.00,
     commissionBalance: 0.00,
-    inviteCode: '1YR1RA',
+    inviteCode: '',
     pixKeyType: 'CPF',
     pixKey: '',
   });
@@ -2463,6 +2467,7 @@ export default function App() {
                 <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-400">
                   <div>ID: {user.id} • UID: {user.uid}</div>
                   <div className="mt-0.5">NEXUS AÇÕES © 2026</div>
+                  <button onClick={onSignOut} className="mt-3 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Sair da conta</button>
                 </div>
               </div>
               <div className="flex-1" onClick={() => setDrawerOpen(false)} />
@@ -2627,4 +2632,37 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+// Autenticação real: o painel só é exibido após sessão Firebase válida.
+export default function App() {
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    if (!auth) {
+      setAuthReady(true);
+      return undefined;
+    }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setFirebaseUser(currentUser);
+      setAuthReady(true);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleSignOut = async () => {
+    if (auth) await signOut(auth);
+  };
+
+  if (!firebaseConfigured || !auth) {
+    return <AuthScreen configurationMissing />;
+  }
+  if (!authReady) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">Carregando NEXUS AÇÕES...</div>;
+  }
+  if (!firebaseUser) {
+    return <AuthScreen />;
+  }
+  return <Dashboard firebaseUser={firebaseUser} onSignOut={handleSignOut} />;
 }
