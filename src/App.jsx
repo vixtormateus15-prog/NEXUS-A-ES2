@@ -412,7 +412,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
   useEffect(() => {
     if (!database || !firebaseUser?.uid) return undefined;
     let active = true;
-    const profileRef = ref(database, `users/${firebaseUser.uid}/profile`);
+    const profileRef = ref(database, `profiles/${firebaseUser.uid}`);
     get(profileRef)
       .then(async (snapshot) => {
         if (!active) return;
