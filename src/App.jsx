@@ -54,6 +54,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-start',
     name: 'NEXUS START',
+    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85',
     dailyReturn: 2.50,
     days: 30,
     limit: 1,
@@ -69,6 +70,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-tech',
     name: 'NEXUS TECH',
+    image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85',
     dailyReturn: 4.20,
     days: 40,
     limit: 1,
@@ -84,6 +86,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-agro',
     name: 'NEXUS AGRO',
+    image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=85',
     dailyReturn: 11.11,
     days: 30,
     limit: 3,
@@ -99,6 +102,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-industrial',
     name: 'NEXUS INDUSTRIAL',
+    image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1200&q=85',
     dailyReturn: 15.50,
     days: 40,
     limit: 2,
@@ -114,6 +118,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-energy',
     name: 'NEXUS ENERGY',
+    image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1200&q=85',
     dailyReturn: 31.15,
     days: 60,
     limit: 1,
@@ -129,6 +134,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-crypto',
     name: 'NEXUS CRYPTO',
+    image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1200&q=85',
     dailyReturn: 40.00,
     days: 90,
     limit: 2,
@@ -144,6 +150,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-global',
     name: 'NEXUS GLOBAL',
+    image: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=1200&q=85',
     dailyReturn: 85.00,
     days: 120,
     limit: 2,
@@ -159,6 +166,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-prime',
     name: 'NEXUS PRIME',
+    image: 'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1200&q=85',
     dailyReturn: 390.00,
     days: 180,
     limit: 2,
@@ -283,7 +291,10 @@ const formatBRL = (value) => {
 const PlanVisualBanner = ({ plan, heightClass = 'h-40' }) => {
   const IconComponent = plan.icon;
   return (
-    <div className={`relative w-full ${heightClass} bg-gradient-to-br ${plan.gradient} overflow-hidden flex items-center justify-between p-5 select-none`}>
+    <div className={`plan-banner relative w-full ${heightClass} bg-gradient-to-br ${plan.gradient} overflow-hidden flex items-center justify-between p-5 select-none`}>
+      <img src={plan.image} alt={`Imagem ilustrativa de ${plan.subtitle}`} className="plan-banner-image absolute inset-0 w-full h-full object-cover" loading="lazy" />
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/55 to-slate-950/25" />
+      <div className="plan-banner-glow absolute -right-10 -top-12 w-44 h-44 rounded-full bg-cyan-300/25 blur-3xl" />
       {/* Padrão geométrico de gráfico financeiro no fundo */}
       <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 400 160" preserveAspectRatio="none">
         <defs>
