@@ -64,3 +64,30 @@ button, input, select, textarea { font: inherit; }
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Identidade visual: títulos principais vivos, luminosos e alinhados à paleta NEXUS */
+.nexus-title {
+  width: fit-content;
+  max-width: 100%;
+  color: #0891b2;
+  background: linear-gradient(100deg, #1d4ed8 0%, #06b6d4 24%, #8b5cf6 48%, #0ea5e9 72%, #1d4ed8 100%);
+  background-size: 240% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 18px rgba(6, 182, 212, .12);
+  animation: nexus-title-flow 6s ease-in-out infinite, nexus-title-glow 3.2s ease-in-out infinite alternate;
+}
+@keyframes nexus-title-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes nexus-title-glow {
+  from { filter: drop-shadow(0 0 2px rgba(6, 182, 212, .12)); }
+  to { filter: drop-shadow(0 0 8px rgba(59, 130, 246, .38)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nexus-title { animation: none; }
+}
