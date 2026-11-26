@@ -2338,8 +2338,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-900 via-indigo-800 to-cyan-600 flex items-center justify-center shadow-sm border border-amber-400/50">
               <TrendingUp className="w-4 h-4 text-amber-300" />
             </div>
-            <span className="font-black text-base tracking-tight text-slate-900">
-              NEXUS <span className="text-blue-800">AÇÕES</span>
+            <span className="font-black text-base tracking-tight nexus-title">
+              NEXUS <span>AÇÕES</span>
             </span>
           </button>
 
