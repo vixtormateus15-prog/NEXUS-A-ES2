@@ -398,6 +398,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
   const [checkinBusy, setCheckinBusy] = useState(false);
   const [investmentBusy, setInvestmentBusy] = useState(false);
   const [withdrawalBusy, setWithdrawalBusy] = useState(false);
+  const [withdrawalProfile, setWithdrawalProfile] = useState(null);
+  const [withdrawalProfileLoaded, setWithdrawalProfileLoaded] = useState(false);
+  const [pixProfileBusy, setPixProfileBusy] = useState(false);
   const [checkinClock, setCheckinClock] = useState(Date.now());
   const [walletData, setWalletData] = useState({ withdrawableBalance: 0, lastCheckinAt: null, checkinCount: 0, signupBonusGranted: false });
   const checkinDayStart = getBrazilDayStart(checkinClock);
@@ -485,6 +488,22 @@ function Dashboard({ firebaseUser, onSignOut }) {
         if (active) showProfileError();
       });
     return () => { active = false; };
+  }, [firebaseUser.uid]);
+
+  // Carrega os dados fixos do titular e a chave PIX salva para saques.
+  useEffect(() => {
+    if (!database || !firebaseUser?.uid) return undefined;
+    return onValue(ref(database, 'withdrawalProfiles/' + firebaseUser.uid), (snapshot) => {
+      const profile = snapshot.exists() ? snapshot.val() : null;
+      setWithdrawalProfile(profile);
+      setWithdrawalProfileLoaded(true);
+      if (profile) {
+        setWithdrawCpf(String(profile.cpf || ''));
+        setWithdrawHolderName(String(profile.holderName || ''));
+        setTempPixType(profile.pixKeyType || 'CPF');
+        setTempPixKey(profile.pixKey || '');
+      }
+    }, () => setWithdrawalProfileLoaded(true));
   }, [firebaseUser.uid]);
 
   // Mantém o pedido pendente recuperável mesmo quando o cliente fecha a janela ou atualiza o site.
@@ -813,20 +832,39 @@ function Dashboard({ firebaseUser, onSignOut }) {
     );
   };
 
-  // Salvar Chave PIX
-  const handleSavePixKey = (e) => {
+  // Salva o cadastro do titular uma única vez; depois permite alterar somente a chave PIX.
+  const handleSavePixKey = async (e) => {
     e.preventDefault();
-    if (!tempPixKey.trim()) {
-      showToast('Digite uma chave PIX válida.', 'error');
-      return;
+    if (pixProfileBusy) return;
+    const pixKey = tempPixKey.trim();
+    if (!pixKey) { showToast('Digite uma chave PIX válida.', 'error'); return; }
+    if (tempPixType === 'CPF' && pixKey.replace(/\\D/g, '').length !== 11) { showToast('A chave PIX CPF deve conter 11 números.', 'error'); return; }
+    if (tempPixType === 'E-mail' && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(pixKey)) { showToast('Informe um e-mail válido como chave PIX.', 'error'); return; }
+    if (tempPixType === 'Telefone' && !/^\\+?[0-9()\\s-]{10,20}$/.test(pixKey)) { showToast('Informe um número de celular válido como chave PIX.', 'error'); return; }
+    if (!database || !firebaseUser?.uid) { showToast('Cadastro de saque indisponível.', 'error'); return; }
+
+    setPixProfileBusy(true);
+    try {
+      const profileRef = ref(database, 'withdrawalProfiles/' + firebaseUser.uid);
+      if (withdrawalProfile) {
+        await update(profileRef, { pixKeyType: tempPixType, pixKey });
+      } else {
+        const cpf = withdrawCpf.replace(/\\D/g, '');
+        const holderName = withdrawHolderName.trim();
+        if (cpf.length !== 11) { showToast('Informe o CPF do titular com 11 números.', 'error'); return; }
+        if (!holderName) { showToast('Informe o nome completo do titular da conta.', 'error'); return; }
+        await set(profileRef, {
+          uid: firebaseUser.uid, cpf, holderName, pixKeyType: tempPixType,
+          pixKey, createdAt: Date.now(), updatedAt: Date.now()
+        });
+      }
+      showToast(withdrawalProfile ? 'Chave PIX atualizada. CPF e titular continuam bloqueados.' : 'Dados do titular cadastrados e salvos. CPF e titular não poderão ser alterados.', 'success');
+      setSubPage('withdraw');
+    } catch (error) {
+      showToast('Não foi possível salvar os dados: ' + (error?.message || 'verifique as regras do Firebase.'), 'error');
+    } finally {
+      setPixProfileBusy(false);
     }
-    setUser((prev) => ({
-      ...prev,
-      pixKeyType: tempPixType,
-      pixKey: tempPixKey.trim()
-    }));
-    showToast('Chave PIX salva com sucesso!', 'success');
-    setSubPage('withdraw');
   };
 
   // O cliente registra uma solicitação; o painel confere e reserva o saldo ao aprovar.
@@ -843,14 +881,16 @@ function Dashboard({ firebaseUser, onSignOut }) {
     if (withdrawHistory.some((item) => item.status === 'Pendente' || item.status === 'Aprovado')) {
       showToast('Você já possui um saque em análise. Aguarde a conclusão.', 'warning'); return;
     }
-    const cpfDigits = withdrawCpf.replace(/\D/g, '');
-    if (cpfDigits.length !== 11) { showToast('Informe o CPF do titular com 11 números.', 'error'); return; }
-    if (!withdrawHolderName.trim()) { showToast('Informe o nome completo do titular da conta bancária.', 'error'); return; }
-    const pixKey = tempPixKey.trim();
+    if (!withdrawalProfile) { showToast('Cadastre primeiro o CPF, o titular e a chave PIX.', 'warning'); setSubPage('pix-method'); return; }
+    const cpfDigits = String(withdrawalProfile.cpf || '');
+    const holderName = String(withdrawalProfile.holderName || '');
+    const pixKey = String(withdrawalProfile.pixKey || '').trim();
+    const pixKeyType = withdrawalProfile.pixKeyType || 'CPF';
+    if (cpfDigits.length !== 11 || !holderName || !pixKey) { showToast('Confira seu cadastro de saque antes de continuar.', 'warning'); setSubPage('pix-method'); return; }
     if (!pixKey) { showToast('Informe a chave PIX que receberá o saque.', 'error'); return; }
-    if (tempPixType === 'CPF' && pixKey.replace(/\D/g, '').length !== 11) { showToast('A chave PIX CPF deve conter 11 números.', 'error'); return; }
-    if (tempPixType === 'E-mail' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixKey)) { showToast('Informe um e-mail válido como chave PIX.', 'error'); return; }
-    if (tempPixType === 'Telefone' && !/^\+?[0-9()\s-]{10,20}$/.test(pixKey)) { showToast('Informe um número de celular válido como chave PIX.', 'error'); return; }
+    if (pixKeyType === 'CPF' && pixKey.replace(/\D/g, '').length !== 11) { showToast('A chave PIX CPF cadastrada é inválida. Atualize-a.', 'error'); setSubPage('pix-method'); return; }
+    if (pixKeyType === 'E-mail' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixKey)) { showToast('A chave PIX cadastrada é inválida. Atualize-a.', 'error'); setSubPage('pix-method'); return; }
+    if (pixKeyType === 'Telefone' && !/^\+?[0-9()\s-]{10,20}$/.test(pixKey)) { showToast('A chave PIX cadastrada é inválida. Atualize-a.', 'error'); setSubPage('pix-method'); return; }
     if (!database || !firebaseUser?.uid) { showToast('Sistema de saques indisponível.', 'error'); return; }
 
     setWithdrawalBusy(true);
@@ -859,8 +899,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
       const amount = Number(val.toFixed(2));
       const requestData = {
         uid: firebaseUser.uid, email: firebaseUser.email || '',
-        name: withdrawHolderName.trim(), cpf: cpfDigits, holderName: withdrawHolderName.trim(),
-        pixKeyType: tempPixType, pixKey, amount, feeAmount: 0,
+        name: holderName, cpf: cpfDigits, holderName,
+        pixKeyType, pixKey, amount, feeAmount: 0,
         netAmount: amount,
         status: 'pending', createdAt: Date.now()
       };
@@ -1298,79 +1338,19 @@ function Dashboard({ firebaseUser, onSignOut }) {
       const pixTypes = ['CPF', 'E-mail', 'Telefone'];
       return (
         <div className="space-y-3">
-          <button
-            onClick={() => setSubPage(null)}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-900 py-1"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Voltar</span>
-          </button>
-
+          <button onClick={() => setSubPage('withdraw')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-900 py-1"><ChevronLeft className="w-4 h-4"/><span>Voltar</span></button>
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-800">
-              <CreditCard className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Chave PIX</h2>
-              <p className="text-xs text-slate-500">Cadastre onde deseja receber os saques.</p>
-            </div>
+            <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-800"><CreditCard className="w-6 h-6"/></div>
+            <div><h2 className="text-lg font-extrabold text-slate-900 nexus-title">Dados para saque</h2><p className="text-xs text-slate-500">Seus dados ficam salvos para as próximas retiradas.</p></div>
           </div>
-
-          <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-3.5 flex items-center gap-3">
-            <QrCode className="w-7 h-7 text-blue-800 shrink-0" />
-            <div>
-              <div className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700">DESTINO DO SAQUE</div>
-              <div className="text-sm font-bold text-slate-900">
-                {user.pixKey ? `${user.pixKeyType}: ${user.pixKey}` : 'Nenhuma chave cadastrada'}
-              </div>
-              <div className="text-[11px] text-slate-500">{tempPixType} • pronto para salvar</div>
-            </div>
-          </div>
-
+          {!withdrawalProfileLoaded ? <div className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">Carregando cadastro...</div> : null}
           <form onSubmit={handleSavePixKey} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-4">
-            <div>
-              <label className="block text-xs font-extrabold text-slate-800 mb-2">Tipo de chave</label>
-              <div className="grid grid-cols-2 gap-2">
-                {pixTypes.map((type) => {
-                  const isSelected = tempPixType === type;
-                  return (
-                    <button
-                      type="button"
-                      key={type}
-                      onClick={() => setTempPixType(type)}
-                      className={`flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-bold transition ${
-                        isSelected
-                          ? 'border-blue-800 bg-blue-50 text-blue-900'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>{type}</span>
-                      {isSelected && <Check className="w-4 h-4 text-blue-800" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Sua chave • {tempPixType}
-              </label>
-              <input
-                type="text"
-                value={tempPixKey}
-                onChange={(e) => setTempPixKey(e.target.value)}
-                placeholder={`Digite sua chave ${tempPixType}`}
-                className="w-full px-3.5 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-700"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-900 to-indigo-800 text-white font-bold text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition"
-            >
-              Salvar chave PIX
-            </button>
+            <div><label className="block text-xs font-extrabold text-slate-800 mb-1.5">CPF do titular</label><input type="text" inputMode="numeric" maxLength={11} disabled={Boolean(withdrawalProfile)} value={withdrawCpf} onChange={e=>setWithdrawCpf(e.target.value.replace(/[^0-9]/g,'').slice(0,11))} placeholder="Digite os 11 números do CPF" className="w-full px-3.5 py-3 rounded-xl border border-slate-200 text-sm disabled:bg-slate-100 disabled:text-slate-500" required/><p className="mt-1 text-[11px] text-slate-500">{withdrawalProfile ? 'CPF cadastrado e bloqueado para edição.' : 'Confira com atenção: após salvar, não poderá ser alterado.'}</p></div>
+            <div><label className="block text-xs font-extrabold text-slate-800 mb-1.5">Nome completo do titular</label><input type="text" autoComplete="name" disabled={Boolean(withdrawalProfile)} value={withdrawHolderName} onChange={e=>setWithdrawHolderName(e.target.value)} placeholder="Nome exatamente como consta no banco" className="w-full px-3.5 py-3 rounded-xl border border-slate-200 text-sm disabled:bg-slate-100 disabled:text-slate-500" required/><p className="mt-1 text-[11px] text-slate-500">{withdrawalProfile ? 'Titular cadastrado e bloqueado para edição.' : 'Após salvar, somente a chave PIX poderá ser alterada.'}</p></div>
+            <div><label className="block text-xs font-extrabold text-slate-800 mb-1.5">Tipo de chave PIX</label><div className="grid grid-cols-3 gap-2">{pixTypes.map(type=><button type="button" key={type} onClick={()=>setTempPixType(type)} className={'rounded-xl border px-2 py-3 text-xs font-bold '+(tempPixType===type?'border-blue-800 bg-blue-50 text-blue-900':'border-slate-200 text-slate-600')}>{type}</button>)}</div></div>
+            <div><label className="block text-xs font-extrabold text-slate-800 mb-1.5">Chave PIX</label><input type="text" value={tempPixKey} onChange={e=>setTempPixKey(e.target.value)} placeholder={'Digite sua chave '+tempPixType} className="w-full px-3.5 py-3 rounded-xl border border-slate-200 text-sm" required/></div>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">{withdrawalProfile ? 'Você pode alterar somente a chave PIX. O CPF e o nome do titular permanecem fixos.' : 'Confira o CPF e o nome antes de salvar. Esses dois dados ficarão bloqueados; depois você poderá alterar apenas a chave PIX.'}</div>
+            <button type="submit" disabled={pixProfileBusy || !withdrawalProfileLoaded} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-900 to-indigo-800 text-white font-bold text-sm shadow-md disabled:opacity-50">{pixProfileBusy ? 'Salvando...' : withdrawalProfile ? 'Salvar nova chave PIX' : 'Salvar cadastro'}</button>
           </form>
         </div>
       );
@@ -1412,52 +1392,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
               : 'Para liberar o saque, ative pelo menos um plano. Depois disso, depósitos, bônus de cadastro e Check-ins podem ser sacados. Mínimo: R$ 10,00.'}
           </div>
 
-          {/* Atalho Chave PIX */}
-          <button
-            onClick={() => {
-              setTempPixType(user.pixKeyType);
-              setTempPixKey(user.pixKey);
-              setSubPage('pix-method');
-            }}
-            className="w-full bg-blue-50/90 border border-blue-200 rounded-2xl p-3.5 flex items-center justify-between text-left hover:bg-blue-100/70 transition"
-          >
-            <div className="flex items-center gap-3">
-              <QrCode className="w-7 h-7 text-blue-800" />
-              <div>
-                <div className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700">CHAVE PIX</div>
-                <div className="text-sm font-bold text-slate-900">
-                  {user.pixKey ? `${user.pixKeyType}: ${user.pixKey}` : 'Nenhuma chave cadastrada'}
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  {user.pixKey ? 'Toque para alterar' : 'Toque para cadastrar'}
-                </div>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-blue-800" />
-          </button>
-
-          {/* Dados obrigatórios para identificação e destino do saque */}
+          {/* Chave PIX salva: na retirada o cliente só confere o destino e o valor. */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
-            <h3 className="text-sm font-extrabold text-slate-900">Dados obrigatórios para receber</h3>
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">CPF do solicitante</label>
-              <input type="text" inputMode="numeric" autoComplete="off" value={withdrawCpf} onChange={(e) => setWithdrawCpf(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))} placeholder="Digite os 11 números do CPF" className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">Nome completo do titular da conta bancária</label>
-              <input type="text" autoComplete="name" value={withdrawHolderName} onChange={(e) => setWithdrawHolderName(e.target.value)} placeholder="Nome exatamente como consta no banco" className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">Tipo de chave PIX</label>
-              <select value={tempPixType} onChange={(e) => setTempPixType(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700">
-                <option value="CPF">CPF</option><option value="E-mail">E-mail</option><option value="Telefone">Número de celular</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">Chave PIX para receber</label>
-              <input type="text" autoComplete="off" value={tempPixKey} onChange={(e) => setTempPixKey(e.target.value)} placeholder={tempPixType === 'CPF' ? 'CPF da chave PIX' : tempPixType === 'E-mail' ? 'seuemail@exemplo.com' : 'DDD + número do celular'} className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700" />
-            </div>
-            <p className="text-[11px] leading-relaxed text-slate-500">Confira os dados antes de continuar. O CPF identifica o solicitante; a chave PIX indica o destino do pagamento.</p>
+            <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-extrabold text-slate-900">Chave PIX cadastrada</h3><p className="text-[11px] text-slate-500">O pagamento será conferido manualmente pelo titular.</p></div><ShieldCheck className="w-6 h-6 text-emerald-600"/></div>
+            {withdrawalProfile ? <><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Destino do saque</p><p className="mt-1 break-all text-sm font-extrabold text-slate-900">{withdrawalProfile.pixKeyType}: {withdrawalProfile.pixKey}</p></div><button onClick={()=>{setWithdrawCpf(withdrawalProfile.cpf||'');setWithdrawHolderName(withdrawalProfile.holderName||'');setTempPixType(withdrawalProfile.pixKeyType||'CPF');setTempPixKey(withdrawalProfile.pixKey||'');setSubPage('pix-method');}} className="text-xs font-bold text-blue-800 hover:underline">Alterar somente a chave PIX</button></> : <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">Cadastre primeiro o CPF, o titular e a chave PIX para liberar a solicitação de saque.<button onClick={()=>{setTempPixType('CPF');setTempPixKey('');setSubPage('pix-method');}} className="mt-2 block font-extrabold text-blue-800 underline">Cadastrar dados para saque</button></div>}
           </div>
 
           {/* Formulário de Saque */}
@@ -1504,7 +1442,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
             <button
               onClick={handleRequestWithdraw}
-              disabled={withdrawalBusy}
+              disabled={withdrawalBusy || !withdrawalProfile}
               className="w-full py-3.5 disabled:opacity-50 rounded-xl bg-gradient-to-r from-blue-900 to-indigo-800 text-white font-bold text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition"
             >
               {withdrawalBusy ? 'Enviando solicitação...' : 'Solicitar saque'}
