@@ -2125,81 +2125,112 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   return (
                     <div
                       key={inv.instanceId}
-                      className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3"
+                      className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-blue-950/10"
                     >
-                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-900 to-cyan-700 text-white flex items-center justify-center font-extrabold text-xs">
-                            NX
-                          </div>
+                      <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-5 text-white">
+                        <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl" />
+                        <div className="absolute -bottom-16 left-1/3 h-36 w-36 rounded-full bg-indigo-400/20 blur-3xl" />
+                        <div className="relative flex items-start justify-between gap-3">
                           <div>
-                            <h4 className="text-sm font-extrabold text-slate-900">{inv.name}</h4>
-                            <span className="text-sm font-extrabold text-blue-800">{formatBRL(inv.price)}</span>
+                            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-400/15 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-emerald-200">
+                              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
+                              Plano em andamento
+                            </div>
+                            <h4 className="text-xl font-black tracking-wide">{inv.name}</h4>
+                            <p className="mt-1 text-xs font-medium text-blue-100/80">Acompanhamento do seu ciclo</p>
+                          </div>
+                          <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-right backdrop-blur">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-blue-100">Valor do plano</div>
+                            <div className="mt-0.5 text-lg font-black text-white">{formatBRL(inv.price)}</div>
                           </div>
                         </div>
-                        <span className="text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full">
-                          Em uso
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Renda diária:</span>
-                          <span className="font-bold text-slate-900">{formatBRL(inv.dailyReturn)} (previsto)</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Aprovado / ativado em:</span>
-                          <span className="font-semibold text-slate-700">{new Date(Number(inv.startAt || 0)).toLocaleString('pt-BR')}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Primeiro dia do ciclo:</span>
-                          <span className="font-semibold text-slate-700">{new Date(firstCreditAt).toLocaleString('pt-BR')}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Tempo de término:</span>
-                          <span className="font-semibold text-slate-700">{new Date(firstCreditAt + Number(inv.days || 0) * 86400000).toLocaleString('pt-BR')}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Renda acumulada:</span>
-                          <span className="font-extrabold text-emerald-700">{formatBRL(Number(inv.paidTotal || 0))} pago</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Dias com pagamento confirmado:</span>
-                          <span className="font-bold text-slate-900">{Number(inv.daysCredited || 0)} / {inv.days}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Ciclo:</span>
-                          <span className="font-bold text-slate-900">
-                            {inv.days} dias · projeção {formatBRL(totalExpected)}
-                          </span>
+                        <div className="relative mt-5 grid grid-cols-2 gap-3">
+                          <div className="rounded-2xl border border-emerald-300/25 bg-emerald-400/10 p-3">
+                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-100"><TrendingUp className="h-4 w-4" /> Renda diária prevista</div>
+                            <div className="mt-1 text-2xl font-black text-emerald-300">{formatBRL(inv.dailyReturn)}</div>
+                            <div className="mt-0.5 text-[10px] text-emerald-100/70">Estimativa, não pagamento confirmado</div>
+                          </div>
+                          <div className="rounded-2xl border border-cyan-300/25 bg-cyan-400/10 p-3">
+                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-cyan-100"><CheckCircle2 className="h-4 w-4" /> Total confirmado</div>
+                            <div className="mt-1 text-2xl font-black text-white">{formatBRL(Number(inv.paidTotal || 0))}</div>
+                            <div className="mt-0.5 text-[10px] text-cyan-100/70">Créditos já aprovados</div>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Barra de Progresso */}
-                      <div>
-                        <div className="flex justify-between text-[11px] font-bold text-slate-500 mb-1">
-                          <span>{elapsed === 0 ? 'Aguardando início' : `Dia ${elapsed} de ${inv.days}`}</span>
-                          <span className="text-blue-800">{progressPct}%</span>
-                          <span>{daysRemaining} restantes</span>
+                      <div className="space-y-4 p-4 sm:p-5">
+                        <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-xs font-extrabold uppercase tracking-wider text-blue-900">Progresso do ciclo</div>
+                              <div className="mt-1 text-2xl font-black text-slate-950">{progressPct}% <span className="text-sm font-bold text-slate-500">concluído</span></div>
+                            </div>
+                            <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm">
+                              <div className="text-2xl font-black text-blue-900">{daysRemaining}</div>
+                              <div className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">dias restantes</div>
+                            </div>
+                          </div>
+                          <div className="mt-3 h-4 overflow-hidden rounded-full border border-blue-100 bg-white shadow-inner">
+                            <div className="h-full rounded-full bg-gradient-to-r from-blue-700 via-cyan-500 to-emerald-400 transition-all duration-700" style={{ width: `${progressPct}%` }} />
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-xs font-bold text-slate-600">
+                            <span>{elapsed === 0 ? 'Aguardando início' : `Dia ${Math.min(elapsed, daysInCycle)} de ${daysInCycle}`}</span>
+                            <span>{Number(inv.daysCredited || 0)} de {inv.days} pagamentos confirmados</span>
+                          </div>
+                          <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                            {elapsed === 0
+                              ? `Seu acompanhamento começa em ${new Date(firstCreditAt).toLocaleString('pt-BR')}.`
+                              : `O ciclo está em andamento. A barra mostra o tempo transcorrido, enquanto os pagamentos são contabilizados somente após confirmação administrativa.`}
+                          </p>
                         </div>
-                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-blue-800 to-cyan-500 transition-all duration-500"
-                            style={{ width: `${progressPct}%` }}
-                          />
-                        </div>
-                        <div className="text-center text-[11px] text-slate-500 mt-1.5">
-                          {elapsed === 0
-                            ? `O acompanhamento começa em ${new Date(firstCreditAt).toLocaleString('pt-BR')}`
-                            : `Dia ${elapsed} de ${inv.days} · ${progressPct}% concluído · ${daysRemaining} dia(s) restante(s)`}
-                        </div>
-                      </div>
 
-                      <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-[11px] leading-relaxed text-blue-900">
-                        Os valores diários e o total do ciclo são apenas informativos. O pagamento é feito manualmente pela administração e só entra no saldo sacável após a confirmação no painel.
+                        <div>
+                          <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-slate-900">
+                            <Clock className="h-5 w-5 text-blue-700" /> Detalhes e datas do plano
+                          </div>
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Aprovado / ativado em</div>
+                              <div className="mt-1 text-sm font-bold text-slate-900">{new Date(Number(inv.startAt || 0)).toLocaleString('pt-BR')}</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Primeiro dia do ciclo</div>
+                              <div className="mt-1 text-sm font-bold text-slate-900">{new Date(firstCreditAt).toLocaleString('pt-BR')}</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Previsão de encerramento</div>
+                              <div className="mt-1 text-sm font-bold text-slate-900">{new Date(firstCreditAt + Number(inv.days || 0) * 86400000).toLocaleString('pt-BR')}</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Ciclo contratado</div>
+                              <div className="mt-1 text-sm font-bold text-slate-900">{inv.days} dias</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                            <div className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-800">Pagamentos confirmados</div>
+                            <div className="mt-1 text-xl font-black text-emerald-700">{Number(inv.daysCredited || 0)} / {inv.days}</div>
+                          </div>
+                          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                            <div className="text-[10px] font-extrabold uppercase tracking-wide text-amber-800">Projeção do ciclo</div>
+                            <div className="mt-1 text-xl font-black text-amber-700">{formatBRL(totalExpected)}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-950">
+                          <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
+                          <div>
+                            <div className="text-sm font-extrabold">Como os pagamentos funcionam</div>
+                            <p className="mt-1 text-xs leading-relaxed">
+                              Os valores diários e o total do ciclo são projeções informativas, não garantia de rendimento. A administração realiza a conferência e confirma cada pagamento manualmente. Somente valores efetivamente confirmados entram no saldo disponível para saque.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  );
+                  );;
                 })
               )}
             </div>
