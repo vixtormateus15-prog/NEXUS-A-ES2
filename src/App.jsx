@@ -446,7 +446,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
   ]);
 
   // Estados de Formulários
-  const [depositAmount, setDepositAmount] = useState('50');
+  const [depositAmount, setDepositAmount] = useState('15');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [tempPixType, setTempPixType] = useState('CPF');
   const [tempPixKey, setTempPixKey] = useState('');
@@ -741,8 +741,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
   // Solicita um PIX: o administrador cola o código verdadeiro gerado no banco.
   const handleGeneratePix = async () => {
     const val = Number(String(depositAmount).replace(',', '.'));
-    if (!Number.isFinite(val) || val < 35 || val > 5000) {
-      showToast('Informe um valor entre R$ 35,00 e R$ 5.000,00.', 'error');
+    if (!Number.isFinite(val) || val < 15 || val > 5000) {
+      showToast('Informe um valor entre R$ 15,00 e R$ 5.000,00.', 'error');
       return;
     }
     if (!database || !firebaseUser?.uid) {
@@ -2241,7 +2241,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
     // TELA 3: DEPOSITAR (CARTEIRA NEXUS AÇÕES)
     // ------------------------------------------------------------------------
     if (activeTab === 'depositar') {
-      const quickAmounts = [50, 100, 200, 250, 500, 1000, 2500, 5000];
+      const quickAmounts = [15, 50, 100, 200, 250, 500, 1000, 5000];
       return (
         <div className="space-y-3">
           {/* Card Principal Carteira */}
@@ -2337,7 +2337,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 </span>
                 <input
                   type="number"
-                  min="50"
+                  min="15"
                   max="5000"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
@@ -2349,7 +2349,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <div className="space-y-1 text-xs pt-1">
               <div className="flex justify-between">
                 <span className="text-slate-500">Depósito mínimo</span>
-                <span className="font-bold text-slate-900">R$ 50,00</span>
+                <span className="font-bold text-slate-900">R$ 15,00</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Depósito máximo</span>
