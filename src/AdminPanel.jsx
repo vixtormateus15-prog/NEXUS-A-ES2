@@ -231,7 +231,8 @@ export default function AdminPanel({ firebaseUser }) {
     try {
       const path=(selected._type==='deposit'?'depositRequests/':'withdrawalRequests/')+selected.id;
       if (selected._type === 'deposit' && status === 'rejected') {
-        // Exclusão definitiva da solicitação recusada em todos os locais usados pelo painel.
+        // Remove o pedido recusado da fila administrativa e do espelho do cliente.
+        // O registro não deve continuar aparecendo como "em processamento".
         await update(ref(database), {
           [path]: null,
           ['depositRequestsByUser/' + selected.uid + '/' + selected.id]: null
@@ -239,7 +240,7 @@ export default function AdminPanel({ firebaseUser }) {
         setDeposits((current) => current.filter((item) => item.id !== selected.id));
         setSelected(null);
         setFilter('all');
-        setNotice('Depósito recusado e removido de todas as listas do painel.');
+        setNotice('Depósito recusado e removido do painel.');
         return;
       }
       if (selected._type === 'withdrawal' && status === 'approved' && selected.status === 'pending') {
@@ -346,6 +347,17 @@ export default function AdminPanel({ firebaseUser }) {
           transactionId: txId.trim(),
           requestId: selected.id
         });
+        // Após confirmar o crédito, arquiva somente no histórico e retira o pedido
+        // das filas do painel e do espelho "em processamento" do cliente.
+        await update(ref(database), {
+          [path]: null,
+          ['depositRequestsByUser/' + selected.uid + '/' + selected.id]: null
+        });
+        setDeposits((current) => current.filter((item) => item.id !== selected.id));
+        setSelected(null);
+        setFilter('all');
+        setNotice('✓ Depósito aprovado, saldo creditado uma única vez e pedido removido da fila de processamento.');
+        return;
       }
       // Preserva os campos obrigatórios do pedido: o Realtime Database valida
       // o registro completo e não pode receber apenas os campos alterados.
