@@ -237,13 +237,13 @@ export default function AdminPanel({ firebaseUser }) {
           const reservations = wallet.withdrawalReservations || {};
           if (reservations[selected.id]) return wallet;
           const hasOpen = Object.values(reservations).some((entry) => entry && (entry.status === 'pending' || entry.status === 'approved'));
-          const active = Object.values(wallet.investments || {}).some((inv) => inv && Date.now() < Number(inv.firstCreditAt || 0) + Number(inv.days || 0) * 86400000);
+          const hasActivatedPlan = Object.values(wallet.investments || {}).some((inv) => inv && inv.instanceId);
           const balance = Number(wallet.withdrawableBalance || 0);
-          if (hasOpen || !active || balance < amount) return;
+          if (hasOpen || !hasActivatedPlan || balance < amount) return;
           const record = {...selected, status:'approved', reservedAt:Date.now()};
           return {...wallet, withdrawableBalance:Number((balance - amount).toFixed(2)), withdrawalReservations:{...reservations,[selected.id]:record}};
         }, { applyLocally:false });
-        if (!reserveResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) throw new Error('Saldo insuficiente, plano inativo ou outro saque já reservado. O pedido continua pendente.');
+        if (!reserveResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) throw new Error('Saldo insuficiente, nenhum plano ativado foi encontrado ou já existe outro saque em análise. O pedido continua pendente.');
       }
       if (selected._type === 'withdrawal' && status === 'rejected' && selected.status === 'approved') {
         const walletRef = ref(database, 'wallets/' + selected.uid);
