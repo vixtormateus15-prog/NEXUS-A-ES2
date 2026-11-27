@@ -78,16 +78,17 @@ exports.activateInvestment = onCall({ region: 'southamerica-east1' }, async (req
     };
   }, undefined, false);
 
+  const savedWallet = result.snapshot.val() || {};
+  const savedId = savedWallet.investmentActivations?.[activationKey];
+  if (savedId && savedWallet.investments?.[savedId]) {
+    return { success: true, investment: savedWallet.investments[savedId], repeated: savedWallet.investments[savedId].startAt !== now };
+  }
+
   if (!result.committed) {
-    const wallet = result.snapshot.val() || {};
-    const alreadyActivatedId = wallet.investmentActivations?.[activationKey];
-    if (alreadyActivatedId && wallet.investments?.[alreadyActivatedId]) {
-      return { success: true, investment: wallet.investments[alreadyActivatedId], repeated: true };
-    }
-    const purchased = Object.values(wallet.investments || {}).filter((item) => item?.planId === planId).length;
+    const purchased = Object.values(savedWallet.investments || {}).filter((item) => item?.planId === planId).length;
     if (purchased >= plan.limit) throw new HttpsError('failed-precondition', 'Você já atingiu o limite deste plano.');
     throw new HttpsError('failed-precondition', 'Saldo de depósito insuficiente.');
   }
 
-  return { success: true, investment };
+  throw new HttpsError('internal', 'A ativação não foi salva corretamente. Confira sua carteira antes de tentar novamente.');
 });
