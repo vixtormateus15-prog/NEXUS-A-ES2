@@ -1146,9 +1146,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 <span className="font-bold text-slate-900">{currentPlan.days} dias</span>
               </div>
               <div className="py-3 px-3 my-1 rounded-xl bg-emerald-50 border border-emerald-200">
-                <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-800">Projeção provisória do ciclo</div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-800">Resumo do ciclo</div>
                 <div className="text-xl font-black text-emerald-700 mt-0.5">+{((totalReturn / currentPlan.price) * 100).toFixed(1).replace('.', ',')}%</div>
-                <div className="text-xs font-semibold text-emerald-800">{formatBRL(totalReturn)} em {currentPlan.days} dias · projeção provisória</div>
+                <div className="text-xs font-semibold text-emerald-800">{formatBRL(totalReturn)} em {currentPlan.days} dias</div>
               </div>
               <div className="py-2.5 flex justify-between">
                 <span className="text-slate-500">Status:</span>
@@ -2047,9 +2047,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
                       <p className="mt-1 max-w-[19rem] text-[10px] leading-relaxed text-slate-500">{plan.description}</p>
                       <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)} · projeção provisória/dia · {plan.days} dias</span>
+                        <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)}/dia · {plan.days} dias</span>
                         <span className="inline-flex items-center rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-1 text-xs font-extrabold text-emerald-800">
-                          +{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% · projeção provisória
+                          +{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}%
                         </span>
                       </div>
                       <div className="text-[11px] font-bold text-blue-700 mt-0.5">
@@ -2128,9 +2128,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
                       <p className="mt-1 max-w-[19rem] text-[10px] leading-relaxed text-slate-500">{plan.description}</p>
                       <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)} · projeção provisória/dia · {plan.days} dias</span>
+                        <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)}/dia · {plan.days} dias</span>
                         <span className="inline-flex items-center rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-1 text-xs font-extrabold text-emerald-800">
-                          +{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% · projeção provisória
+                          +{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}%
                         </span>
                       </div>
                       <div className="text-[11px] font-bold text-blue-700 mt-0.5">{plan.tag}</div>
