@@ -532,7 +532,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
       const history = Object.entries(raw).map(([id, item]) => ({
         id, amount: Number(item?.amount || 0), net: Number(item?.netAmount ?? item?.amount ?? 0),
         pixKey: item?.pixKey || '', holderName: item?.holderName || item?.name || '',
-        status: ({ pending: 'Em processamento', approved: 'Aprovado', paid: 'Pago', rejected: 'Recusado' }[item?.status] || item?.status || 'Em processamento'),
+        status: ({ pending: 'Em processamento', approved: 'SAQUE BEM SUCEDIDO', paid: 'Pago', rejected: 'Recusado' }[item?.status] || item?.status || 'Em processamento'),
         createdAt: Number(item?.createdAt || 0),
         date: item?.createdAt ? new Date(Number(item.createdAt)).toLocaleString('pt-BR') : '—'
       })).sort((a,b)=>b.createdAt-a.createdAt);
@@ -1709,7 +1709,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                     <div className="text-sm font-extrabold text-blue-900">
                       {formatBRL(item.amount)}
                     </div>
-                    <span className="inline-block text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full mt-1">
+                    <span className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full mt-1 ${item.status === 'SAQUE BEM SUCEDIDO' ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
                       {item.status}
                     </span>
                   </div>
