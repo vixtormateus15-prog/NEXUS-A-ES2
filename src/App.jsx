@@ -484,8 +484,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
     if (!database || !firebaseUser?.uid) return undefined;
     const walletRef = ref(database, `wallets/${firebaseUser.uid}`);
     return onValue(walletRef, (snapshot) => {
-      if (!snapshot.exists()) return;
-      const wallet = snapshot.val() || {};
+      const wallet = snapshot.exists()
+        ? (snapshot.val() || {})
+        : { withdrawableBalance: 0, lastCheckinAt: null, checkinCount: 0, signupBonusGranted: false };
       setWalletData(wallet);
       setUser((prev) => ({ ...prev, withdrawableBalance: Number(wallet.withdrawableBalance || 0) }));
     }, () => {
@@ -661,6 +662,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
         const lastCheckinAt = Number(wallet.lastCheckinAt || 0);
         if (lastCheckinAt >= getBrazilDayStart(Date.now())) return;
         return {
+          ...wallet,
           withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + 1).toFixed(2)),
           checkinCount: Number(wallet.checkinCount || 0) + 1,
           lastCheckinAt: Date.now()
