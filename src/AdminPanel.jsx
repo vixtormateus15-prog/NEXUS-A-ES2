@@ -164,7 +164,20 @@ export default function AdminPanel({ firebaseUser }) {
         const result = await runTransaction(walletRef, (current) => {
           const wallet = current || {};
           const activations = wallet.investmentActivations || {};
-          if (activations[item.id]) return wallet;
+          if (activations[item.id]) {
+            // Recuperação idempotente: se a ativação já ocorreu mas a confirmação do pedido falhou,
+            // ainda concede o bônus uma única vez, sem duplicar o investimento.
+            if (!wallet.signupBonusGranted) {
+              return {
+                ...wallet,
+                withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + 3.50).toFixed(2)),
+                signupBonusGranted: true,
+                signupBonusAmount: 3.50,
+                signupBonusGrantedAt: now
+              };
+            }
+            return wallet;
+          }
           const investments = wallet.investments || {};
           const bought = Object.values(investments).filter((inv) => inv?.planId === item.planId).length;
           const balance = Number(wallet.depositBalance || 0);
@@ -177,9 +190,13 @@ export default function AdminPanel({ firebaseUser }) {
             projectedTotal:Number((plan.dailyReturn * plan.days).toFixed(2)),
             timezone:'America/Sao_Paulo'
           };
+          const grantSignupBonus = !wallet.signupBonusGranted;
           return {
             ...wallet,
             depositBalance:Number((balance - plan.price).toFixed(2)),
+            withdrawableBalance:Number((Number(wallet.withdrawableBalance || 0) + (grantSignupBonus ? 3.50 : 0)).toFixed(2)),
+            signupBonusGranted: grantSignupBonus ? true : Boolean(wallet.signupBonusGranted),
+            ...(grantSignupBonus ? { signupBonusAmount:3.50, signupBonusGrantedAt:now } : {}),
             investments:{...investments,[id]:investment},
             investmentActivations:{...activations,[item.id]:id}
           };
