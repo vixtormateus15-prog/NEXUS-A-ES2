@@ -2288,22 +2288,27 @@ function Dashboard({ firebaseUser, onSignOut }) {
     if (activeTab === 'depositar') {
       const quickAmounts = [15, 50, 100, 200, 250, 500, 1000, 5000];
       return (
-        <div className="space-y-3">
+        <div className="space-y-5">
           {/* Card Principal Carteira */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
-            <div className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-blue-800 bg-blue-50 px-2.5 py-1 rounded-md">
+          <div className="relative overflow-hidden rounded-3xl border border-blue-800/30 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 p-5 shadow-xl text-white">
+            <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full border-[18px] border-cyan-300/10" />
+            <div className="pointer-events-none absolute -bottom-16 -left-8 h-40 w-40 rounded-full bg-blue-400/10 blur-2xl" />
+            <div className="relative">
+            <div className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-widest text-cyan-100 bg-white/10 border border-white/15 px-3 py-2 rounded-full">
               <Wallet className="w-3.5 h-3.5" />
               <span>CARTEIRA NEXUS AÇÕES</span>
             </div>
-            <h2 className="text-xl font-extrabold text-slate-900 mt-2 nexus-title">
-              Adicione saldo à sua carteira!
+            <h2 className="text-2xl font-black text-white mt-3 nexus-title tracking-tight">
+              Deposite na sua carteira
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">Escolha o valor e gere o PIX instantâneo.</p>
+            <p className="text-sm text-blue-100/80 mt-1 max-w-xs">Escolha o valor, gere seu pedido PIX e acompanhe a confirmação por aqui.</p>
+            <div className="mt-4 flex items-center gap-2 text-xs font-bold text-cyan-100"><ShieldCheck className="h-4 w-4" /> Conferência manual pela administração</div>
+            </div>
           </div>
 
           {/* Pedido pendente: recuperação disponível somente nesta página de Depósito. */}
           {pendingDepositRequest && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm space-y-3">
+            <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-5 shadow-md space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800">Depósito aguardando pagamento</div>
@@ -2322,7 +2327,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   code: pendingDepositRequest.pixCopyPaste || '',
                   status: pendingDepositRequest.status || 'pending'
                 })}
-                className="w-full rounded-xl bg-blue-900 px-4 py-3 text-xs font-extrabold text-white shadow-sm flex items-center justify-center gap-2"
+                className="w-full min-h-14 rounded-2xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-800 px-5 py-4 text-sm font-black text-white shadow-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.99] transition"
               >
                 <QrCode className="h-4 w-4" />
                 {pendingDepositRequest.pixCopyPaste ? 'Ver código PIX e pagar' : 'Consultar pedido / aguardar código PIX'}
@@ -2331,8 +2336,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
           )}
 
           {/* Card Valores Rápidos */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
-            <div className="flex items-center justify-between mb-1">
+          <div className="bg-white rounded-3xl p-5 shadow-md border border-slate-200/80">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5 text-sm font-extrabold text-slate-900">
                 <Zap className="w-4 h-4 text-amber-500" />
                 <span>Valores rápidos</span>
@@ -2349,7 +2354,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                     key={amt}
                     type="button"
                     onClick={() => setDepositAmount(String(amt))}
-                    className={`py-2.5 rounded-xl text-xs font-extrabold border transition active:scale-95 ${
+                    className={`min-h-12 py-3 rounded-2xl text-sm font-black border-2 transition active:scale-95 ${
                       isSelected
                         ? 'bg-blue-900 text-white border-blue-900 shadow-xs'
                         : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-blue-50'
@@ -2363,9 +2368,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
           </div>
 
           {/* Card Outro Valor */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-800 flex items-center justify-center font-extrabold text-xs">
+          <div className="bg-white rounded-3xl p-5 shadow-md border border-slate-200/80 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-800 to-indigo-700 text-white flex items-center justify-center font-black text-sm shadow-md">
                 R$
               </div>
               <div>
@@ -2386,7 +2391,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   max="5000"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-base font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700"
+                  className="w-full pl-10 pr-4 py-4 rounded-2xl border-2 border-blue-100 bg-blue-50/40 text-xl font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-200 focus:border-blue-600"
                 />
               </div>
             </div>
@@ -2404,7 +2409,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
             <button
               onClick={handleGeneratePix}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-800 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 hover:opacity-95 active:scale-[0.99] transition"
+              className="w-full min-h-14 py-4 rounded-2xl bg-gradient-to-r from-blue-950 via-blue-800 to-indigo-700 text-white font-black text-base shadow-xl flex items-center justify-center gap-3 hover:brightness-110 active:scale-[0.99] transition"
             >
               <QrCode className="w-4 h-4" />
               <span>Gerar PIX</span>
@@ -2984,8 +2989,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
             MODAL DE PAGAMENTO PIX GERADO
            ==================================================================== */}
         {pixModalData && (
-          <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-4">
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3">
+            <div className="bg-white w-full max-w-md rounded-[2rem] p-5 shadow-2xl border border-blue-100 space-y-5 max-h-[92vh] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-extrabold uppercase text-blue-700">PAGAMENTO INSTANTÂNEO</span>
@@ -2999,20 +3004,22 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 </button>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center">
+              <div className="bg-gradient-to-br from-blue-50 via-white to-cyan-50 border border-blue-100 rounded-3xl p-5 flex flex-col items-center shadow-inner">
                 <div className="text-xs text-slate-500">Valor a pagar</div>
                 <div className="text-2xl font-black text-blue-900 my-1">
                   {formatBRL(pixModalData.amount)}
                 </div>
 
                 {pixModalData.code ? (
-                  <div className="mb-3 rounded-xl border border-slate-200 bg-white p-3">
-                    <img
-                      src={`https://quickchart.io/qr?text=${encodeURIComponent(pixModalData.code)}&size=220&margin=2`}
-                      alt="QR Code do PIX para pagamento"
-                      className="mx-auto h-52 w-52 max-w-full"
-                    />
-                    <p className="mt-2 text-center text-[10px] font-semibold text-slate-500">Escaneie o QR Code no aplicativo do banco</p>
+                  <div className="mb-4 w-full rounded-3xl border-2 border-blue-100 bg-white p-4 shadow-lg shadow-blue-900/10">
+                    <div className="mx-auto flex min-h-72 w-full max-w-[18rem] items-center justify-center rounded-2xl bg-white p-2">
+                      <img
+                        src={`https://quickchart.io/qr?text=${encodeURIComponent(pixModalData.code)}&size=320&margin=2`}
+                        alt="QR Code do PIX para pagamento"
+                        className="mx-auto h-64 w-64 max-w-full object-contain"
+                      />
+                    </div>
+                    <p className="mt-3 text-center text-sm font-extrabold text-blue-950">Escaneie o QR Code com o aplicativo do seu banco</p>
                   </div>
                 ) : null}
                 <div className="w-full rounded-xl border border-blue-100 bg-blue-50 p-3 text-center text-xs text-blue-900">
@@ -3037,7 +3044,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                       Copiar
                     </button>
                   </div>
-                  {pixModalData.status === 'paid' ? <p className="mt-3 text-xs font-bold text-emerald-700">Depósito confirmado pela administração.</p> : null}
+                  {pixModalData.status === 'paid' ? <div className="mt-4 flex w-full items-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-4 text-left shadow-sm"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md"><Check className="h-7 w-7 stroke-[3]" /></div><div><div className="text-base font-black uppercase tracking-wide text-emerald-700">Depósito Aprovado</div><div className="mt-0.5 text-xs font-semibold text-emerald-700">Pagamento conferido e confirmado pela administração.</div></div></div> : null}
                   {pixModalData.status === 'rejected' ? <p className="mt-3 text-xs font-bold text-rose-700">Pedido de depósito recusado. Entre em contato com o suporte.</p> : null}
                 </div>
               </div>
