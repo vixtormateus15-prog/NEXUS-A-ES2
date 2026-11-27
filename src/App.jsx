@@ -398,6 +398,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
   const [toast, setToast] = useState(null);
   const [checkinBusy, setCheckinBusy] = useState(false);
   const [investmentBusy, setInvestmentBusy] = useState(false);
+  const [withdrawalBusy, setWithdrawalBusy] = useState(false);
   const [checkinClock, setCheckinClock] = useState(Date.now());
   const [walletData, setWalletData] = useState({ withdrawableBalance: 0, lastCheckinAt: null, checkinCount: 0, signupBonusGranted: false });
   const checkinDayStart = getBrazilDayStart(checkinClock);
@@ -522,6 +523,22 @@ function Dashboard({ firebaseUser, onSignOut }) {
       showToast('Pedido criado, mas não foi possível acompanhar o PIX: ' + (error?.code || error?.message || 'erro de leitura'), 'error');
     });
   }, [pixModalData?.requestId]);
+
+  // Histórico de saques sincronizado com os pedidos enviados ao painel.
+  useEffect(() => {
+    if (!database || !firebaseUser?.uid) return undefined;
+    return onValue(ref(database, 'withdrawalRequestsByUser/' + firebaseUser.uid), (snapshot) => {
+      const raw = snapshot.val() || {};
+      const history = Object.entries(raw).map(([id, item]) => ({
+        id, amount: Number(item?.amount || 0), net: Number(item?.netAmount || 0),
+        pixKey: item?.pixKey || '',
+        status: ({ pending: 'Pendente', approved: 'Aprovado', paid: 'Pago', rejected: 'Recusado' }[item?.status] || item?.status || 'Pendente'),
+        createdAt: Number(item?.createdAt || 0),
+        date: item?.createdAt ? new Date(Number(item.createdAt)).toLocaleString('pt-BR') : '—'
+      })).sort((a,b)=>b.createdAt-a.createdAt);
+      setWithdrawHistory(history);
+    }, (error) => console.error('Falha ao carregar histórico de saques:', error));
+  }, [firebaseUser.uid]);
 
   // Histórico de depósitos confirmado pelo painel administrativo.
   useEffect(() => {
@@ -787,57 +804,46 @@ function Dashboard({ firebaseUser, onSignOut }) {
   };
 
   // Solicitar Saque
-  const handleRequestWithdraw = () => {
+  const handleRequestWithdraw = async () => {
+    if (withdrawalBusy) return;
     if (activeInvestments.length === 0) {
-      showToast('Ative pelo menos um plano para liberar o saque dos bônus e check-ins.', 'warning');
+      showToast('Ative pelo menos um plano para liberar o saque.', 'warning');
       return;
     }
-
     const val = Number(String(withdrawAmount).replace(',', '.'));
-    if (!Number.isFinite(val) || val < 10) {
-      showToast('O valor mínimo para saque é de R$ 10,00.', 'error');
-      return;
-    }
-    if (val > Number(user.withdrawableBalance || 0)) {
-      showToast('Saldo disponível para retirada insuficiente.', 'error');
-      return;
-    }
+    if (!Number.isFinite(val) || val < 10) { showToast('O valor mínimo para saque é de R$ 10,00.', 'error'); return; }
+    if (val > Number(user.withdrawableBalance || 0)) { showToast('Saldo disponível para retirada insuficiente.', 'error'); return; }
     const cpfDigits = withdrawCpf.replace(/\D/g, '');
-    if (cpfDigits.length !== 11) {
-      showToast('Informe um CPF válido com 11 números.', 'error');
-      return;
-    }
-    if (!withdrawHolderName.trim()) {
-      showToast('Informe o nome completo do titular da conta bancária.', 'error');
-      return;
-    }
+    if (cpfDigits.length !== 11) { showToast('Informe o CPF do titular com 11 números.', 'error'); return; }
+    if (!withdrawHolderName.trim()) { showToast('Informe o nome completo do titular da conta bancária.', 'error'); return; }
     const pixKey = tempPixKey.trim();
-    if (!pixKey) {
-      showToast('Informe a chave PIX que receberá o saque.', 'error');
-      return;
-    }
-    if (tempPixType === 'CPF' && pixKey.replace(/\D/g, '').length !== 11) {
-      showToast('A chave PIX CPF deve conter 11 números.', 'error');
-      return;
-    }
-    if (tempPixType === 'E-mail' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixKey)) {
-      showToast('Informe um e-mail válido como chave PIX.', 'error');
-      return;
-    }
-    if (tempPixType === 'Telefone' && !/^\+?[0-9()\s-]{10,20}$/.test(pixKey)) {
-      showToast('Informe um número de celular válido como chave PIX.', 'error');
-      return;
-    }
+    if (!pixKey) { showToast('Informe a chave PIX que receberá o saque.', 'error'); return; }
+    if (tempPixType === 'CPF' && pixKey.replace(/\D/g, '').length !== 11) { showToast('A chave PIX CPF deve conter 11 números.', 'error'); return; }
+    if (tempPixType === 'E-mail' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixKey)) { showToast('Informe um e-mail válido como chave PIX.', 'error'); return; }
+    if (tempPixType === 'Telefone' && !/^\+?[0-9()\s-]{10,20}$/.test(pixKey)) { showToast('Informe um número de celular válido como chave PIX.', 'error'); return; }
+    if (!functions) { showToast('Serviço de saque indisponível. Tente novamente mais tarde.', 'error'); return; }
 
-    // Mantém o saque bloqueado até a integração real e segura do provedor PIX.
-    showToast('Saques ainda não estão conectados a um provedor seguro. Nenhuma solicitação ou débito foi realizado.', 'warning');
-    return;
-    // A solicitação real será habilitada após validação e reserva de saldo no servidor.
-
+    setWithdrawalBusy(true);
+    try {
+      const requestWithdrawal = httpsCallable(functions, 'requestWithdrawal');
+      const requestId = `${firebaseUser.uid.slice(0, 8)}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      await requestWithdrawal({
+        requestId, amount: Number(val.toFixed(2)), cpf: cpfDigits,
+        holderName: withdrawHolderName.trim(), pixKeyType: tempPixType, pixKey
+      });
+      showToast('Solicitação enviada ao painel. O valor foi reservado do seu saldo sacável.', 'success');
+      setWithdrawAmount('');
+    } catch (error) {
+      showToast(error?.message || 'Não foi possível enviar sua solicitação de saque.', 'error');
+    } finally {
+      setWithdrawalBusy(false);
+    }
   };
 
   // ==========================================================================
   // COMPONENTE REUTILIZÁVEL: CARTÃO DE RESUMO DO USUÁRIO
+  // ==========================================================================
+
   // ==========================================================================
   const AccountInsights = () => {
     const metrics = [
@@ -1447,9 +1453,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
             <button
               onClick={handleRequestWithdraw}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-900 to-indigo-800 text-white font-bold text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition"
+              disabled={withdrawalBusy}
+              className="w-full py-3.5 disabled:opacity-50 rounded-xl bg-gradient-to-r from-blue-900 to-indigo-800 text-white font-bold text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition"
             >
-              Solicitar saque
+              {withdrawalBusy ? 'Enviando solicitação...' : 'Solicitar saque'}
             </button>
 
             <div className="flex items-start gap-2 text-[11px] text-slate-500 pt-1">
