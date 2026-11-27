@@ -271,6 +271,59 @@
           }
         }
       }
+    },
+    "supportChats": {
+      ".read": "auth != null && auth.token.email === 'vixtormateus15@gmail.com'",
+      "$uid": {
+        "profile": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'vixtormateus15@gmail.com')",
+          ".write": "auth != null && auth.uid === $uid && newData.child('uid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['uid','displayName','email','createdAt'])",
+          "uid": {
+            ".validate": "newData.isString() && newData.val() === $uid"
+          },
+          "displayName": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "email": {
+            ".validate": "newData.isString() && newData.val().length <= 160"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && newData.val() <= now"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "messages": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'vixtormateus15@gmail.com')",
+          "$messageId": {
+            ".write": "auth != null && ((auth.token.email === 'vixtormateus15@gmail.com' && newData.child('senderRole').val() === 'admin' && newData.child('senderUid').val() === auth.uid) || (auth.uid === $uid && !data.exists() && newData.child('senderRole').val() === 'customer' && newData.child('senderUid').val() === auth.uid))",
+            ".validate": "newData.hasChildren(['senderUid','senderRole','senderName','text','createdAt'])",
+            "senderUid": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128"
+            },
+            "senderRole": {
+              ".validate": "newData.val() === 'customer' || newData.val() === 'admin'"
+            },
+            "senderName": {
+              ".validate": "newData.isString() && newData.val().length <= 80"
+            },
+            "text": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 2000"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
