@@ -1497,7 +1497,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setWithdrawAmount(String(user.withdrawableBalance.toFixed(2)))}
+                  onClick={() => setWithdrawAmount(String((Number(user.withdrawableBalance || 0) + Number(user.depositBalance || 0)).toFixed(2)))}
                   className="mt-2 text-xs font-extrabold text-blue-800 transition hover:text-indigo-700"
                 >
                   Usar saldo total disponível
