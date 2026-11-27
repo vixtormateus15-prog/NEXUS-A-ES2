@@ -1363,96 +1363,176 @@ function Dashboard({ firebaseUser, onSignOut }) {
       const numericWithdraw = parseFloat(withdrawAmount) || 0;
       const feeValue = 0;
       const receiveValue = Math.max(0, Number(numericWithdraw.toFixed(2)));
+      const availableForDisplay = Number(walletData.withdrawableBalance || 0) + Number(walletData.depositBalance || 0);
 
       return (
-        <div className="space-y-3">
+        <div className="space-y-4 pb-4">
           <button
             onClick={() => setSubPage(null)}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-900 py-1"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-blue-900 shadow-sm transition hover:border-blue-200 hover:bg-blue-50"
           >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Voltar</span>
+            <ChevronLeft className="h-4 w-4" />
+            <span>Voltar ao painel</span>
           </button>
 
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-800">
-              <ArrowUpRight className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Retirada</h2>
-              <p className="text-xs text-slate-500">Com pelo menos um plano ativado, o saldo de depósitos, bônus de cadastro e check-ins pode ser sacado.</p>
+          <div className="relative isolate overflow-hidden rounded-[26px] bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-5 text-white shadow-xl shadow-blue-950/15">
+            <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-cyan-400/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-16 left-1/3 h-40 w-40 rounded-full bg-indigo-400/20 blur-3xl" />
+            <div className="relative">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-100">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+                  Área de retirada
+                </span>
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-cyan-200 shadow-inner">
+                  <ArrowUpRight className="h-5 w-5" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-black tracking-tight">Seu saque, em um só lugar</h2>
+              <p className="mt-2 max-w-sm text-xs leading-relaxed text-blue-100/85">
+                Confira seus dados PIX, informe o valor desejado e acompanhe a solicitação pelo histórico.
+              </p>
+              <div className="mt-5 rounded-2xl border border-white/15 bg-white/[0.08] p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-blue-200">Saldo exibido para solicitação</p>
+                <p className="mt-1 text-3xl font-black tracking-tight tabular-nums">{formatBRL(availableForDisplay)}</p>
+                <div className="mt-3 flex items-center gap-2 text-[10px] font-medium text-cyan-100/90">
+                  <ShieldCheck className="h-4 w-4 text-emerald-300" />
+                  Valores e pedidos sincronizados com sua conta
+                </div>
+              </div>
             </div>
           </div>
 
           <UserSummaryCard />
 
-          <div className={`rounded-xl border p-3 text-xs leading-relaxed ${Object.keys(walletData.investments || {}).length > 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
-            {Object.keys(walletData.investments || {}).length > 0
-              ? `Plano ativado detectado. Todo o saldo disponível de depósitos + bônus de cadastro + Check-ins pode ser solicitado. Mínimo: R$ 10,00.`
-              : 'Para liberar o saque, ative pelo menos um plano. Depois disso, depósitos, bônus de cadastro e Check-ins podem ser sacados. Mínimo: R$ 10,00.'}
-          </div>
-
-          {/* Chave PIX salva: na retirada o cliente só confere o destino e o valor. */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
-            <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-extrabold text-slate-900">Chave PIX cadastrada</h3><p className="text-[11px] text-slate-500">O pagamento será conferido manualmente pelo titular.</p></div><ShieldCheck className="w-6 h-6 text-emerald-600"/></div>
-            {withdrawalProfile ? <><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Destino do saque</p><p className="mt-1 break-all text-sm font-extrabold text-slate-900">{withdrawalProfile.pixKeyType}: {withdrawalProfile.pixKey}</p></div><button onClick={()=>{setWithdrawCpf(withdrawalProfile.cpf||'');setWithdrawHolderName(withdrawalProfile.holderName||'');setTempPixType(withdrawalProfile.pixKeyType||'CPF');setTempPixKey(withdrawalProfile.pixKey||'');setSubPage('pix-method');}} className="text-xs font-bold text-blue-800 hover:underline">Alterar somente a chave PIX</button></> : <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">Cadastre primeiro o CPF, o titular e a chave PIX para liberar a solicitação de saque.<button onClick={()=>{setTempPixType('CPF');setTempPixKey('');setSubPage('pix-method');}} className="mt-2 block font-extrabold text-blue-800 underline">Cadastrar dados para saque</button></div>}
-          </div>
-
-          {/* Formulário de Saque */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-slate-900">Quanto deseja sacar?</span>
-              <span className="text-[11px] text-slate-500">
-                Mínimo R$ 10,00. Disponível {formatBRL(Number(walletData.withdrawableBalance || 0) + Number(walletData.depositBalance || 0))}
-              </span>
+          <div className={`flex items-start gap-3 rounded-2xl border p-4 text-xs leading-relaxed shadow-sm ${Object.keys(walletData.investments || {}).length > 0 ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-white text-emerald-900' : 'border-amber-200 bg-gradient-to-r from-amber-50 to-white text-amber-900'}`}>
+            <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${Object.keys(walletData.investments || {}).length > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+              <ShieldCheck className="h-5 w-5" />
             </div>
-
-            <input
-              type="number"
-              min="10"
-              step="0.01"
-              value={withdrawAmount}
-              onChange={(e) => setWithdrawAmount(e.target.value)}
-              placeholder="0,00"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-xl font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700"
-            />
-
-            <button
-              type="button"
-              onClick={() => setWithdrawAmount(String(user.withdrawableBalance.toFixed(2)))}
-              className="text-xs font-bold text-blue-700 hover:underline"
-            >
-              Usar saldo total
-            </button>
-
-            <div className="border-t border-slate-100 pt-3 space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Solicitado</span>
-                <span className="font-bold text-slate-900">{formatBRL(numericWithdraw)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Taxa de saque</span>
-                <span className="font-bold text-emerald-700">{formatBRL(feeValue)}</span>
-              </div>
-              <div className="flex justify-between text-sm pt-1 border-t border-slate-100">
-                <span className="font-extrabold text-slate-900">Você recebe</span>
-                <span className="font-extrabold text-blue-800">{formatBRL(receiveValue)}</span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleRequestWithdraw}
-              disabled={withdrawalBusy || !withdrawalProfile}
-              className="w-full py-3.5 disabled:opacity-50 rounded-xl bg-gradient-to-r from-blue-900 to-indigo-800 text-white font-bold text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition"
-            >
-              {withdrawalBusy ? 'Enviando solicitação...' : 'Solicitar saque'}
-            </button>
-
-            <div className="flex items-start gap-2 text-[11px] text-slate-500 pt-1">
-              <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-              <span>É necessário manter pelo menos um plano ativo. Bônus de cadastro e check-ins entram no saldo disponível; saldo de depósito não é sacável.</span>
+            <div>
+              <p className="font-extrabold">{Object.keys(walletData.investments || {}).length > 0 ? 'Condição de saque identificada' : 'Ativação de plano necessária'}</p>
+              <p className="mt-1">
+                {Object.keys(walletData.investments || {}).length > 0
+                  ? 'Plano ativado detectado. O saldo elegível pode ser solicitado. Valor mínimo: R$ 10,00.'
+                  : 'Para liberar a solicitação, é necessário ativar pelo menos um plano. Valor mínimo: R$ 10,00.'}
+              </p>
             </div>
           </div>
+
+          <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3.5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-800">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">Destino do pagamento</h3>
+                  <p className="text-[11px] text-slate-500">Sua chave PIX cadastrada</p>
+                </div>
+              </div>
+              {withdrawalProfile ? (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-extrabold text-emerald-700">Cadastrada</span>
+              ) : (
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-extrabold text-amber-700">Pendente</span>
+              )}
+            </div>
+            <div className="space-y-3 p-4">
+              {withdrawalProfile ? (
+                <>
+                  <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4">
+                    <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-emerald-700">Chave PIX de recebimento</p>
+                    <p className="mt-2 break-all text-sm font-extrabold text-slate-900">{withdrawalProfile.pixKeyType}: {withdrawalProfile.pixKey}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">Titular: {withdrawalProfile.holderName}</p>
+                  </div>
+                  <button
+                    onClick={() => {setWithdrawCpf(withdrawalProfile.cpf||'');setWithdrawHolderName(withdrawalProfile.holderName||'');setTempPixType(withdrawalProfile.pixKeyType||'CPF');setTempPixKey(withdrawalProfile.pixKey||'');setSubPage('pix-method');}}
+                    className="inline-flex items-center gap-1.5 text-xs font-extrabold text-blue-800 transition hover:text-indigo-700"
+                  >
+                    <CreditCard className="h-4 w-4" /> Alterar somente a chave PIX
+                  </button>
+                </>
+              ) : (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
+                  <p className="text-xs leading-relaxed text-amber-900">Cadastre primeiro o CPF, o titular e a chave PIX para configurar o destino do saque.</p>
+                  <button
+                    onClick={() => {setTempPixType('CPF');setTempPixKey('');setSubPage('pix-method');}}
+                    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-indigo-800"
+                  >
+                    Cadastrar dados para saque <ArrowUpRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50 via-white to-indigo-50 px-4 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-900 text-white shadow-md shadow-blue-900/15">
+                  <ArrowUpRight className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">Solicitar retirada</h3>
+                  <p className="text-[11px] text-slate-500">Informe quanto deseja solicitar</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4 p-4">
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <label className="text-xs font-extrabold text-slate-800">Valor do saque</label>
+                  <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-800">Mínimo R$ 10,00</span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-extrabold text-slate-400">R$</span>
+                  <input
+                    type="number"
+                    min="10"
+                    step="0.01"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    placeholder="0,00"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-2xl font-black tabular-nums text-slate-900 transition placeholder:text-slate-300 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWithdrawAmount(String(user.withdrawableBalance.toFixed(2)))}
+                  className="mt-2 text-xs font-extrabold text-blue-800 transition hover:text-indigo-700"
+                >
+                  Usar saldo total disponível
+                </button>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                <div className="flex items-center justify-between py-1 text-xs">
+                  <span className="text-slate-500">Valor solicitado</span>
+                  <span className="font-bold tabular-nums text-slate-900">{formatBRL(numericWithdraw)}</span>
+                </div>
+                <div className="flex items-center justify-between py-1 text-xs">
+                  <span className="text-slate-500">Taxa de saque</span>
+                  <span className="font-bold tabular-nums text-emerald-700">{formatBRL(feeValue)}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-3">
+                  <span className="text-xs font-extrabold text-slate-800">Valor líquido</span>
+                  <span className="text-lg font-black tabular-nums text-blue-900">{formatBRL(receiveValue)}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleRequestWithdraw}
+                disabled={withdrawalBusy || !withdrawalProfile}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-800 py-4 text-sm font-extrabold text-white shadow-lg shadow-blue-900/20 transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {withdrawalBusy ? 'Enviando solicitação...' : 'Solicitar saque'}
+                {!withdrawalBusy && <ArrowUpRight className="h-4 w-4" />}
+              </button>
+              <div className="flex items-start gap-2 rounded-xl bg-blue-50/80 p-3 text-[11px] leading-relaxed text-blue-900">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" />
+                <span>É necessário manter pelo menos um plano ativo. O pedido será enviado para conferência da administração; a transferência PIX é realizada manualmente após a verificação.</span>
+              </div>
+            </div>
+          </section>
         </div>
       );
     }
