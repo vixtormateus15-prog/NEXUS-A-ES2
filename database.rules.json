@@ -229,6 +229,28 @@
         }
       }
     },
+    "publicActivationFeed": {
+      ".read": "auth != null",
+      "$eventId": {
+        ".write": "auth != null && auth.token.email === 'vixtormateus15@gmail.com'",
+        ".validate": "newData.hasChildren(['maskedId','planName','price','activatedAt'])",
+        "maskedId": {
+          ".validate": "newData.isString() && newData.val().matches(/^ID \\*\\*\\*[0-9A-Za-z]{4}$/)"
+        },
+        "planName": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40"
+        },
+        "price": {
+          ".validate": "newData.isNumber() && newData.val() >= 35 && newData.val() <= 1000"
+        },
+        "activatedAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
     "inviteCodes": {
       "$code": {
         ".read": "auth != null",
