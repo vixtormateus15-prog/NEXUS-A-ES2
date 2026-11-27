@@ -134,8 +134,8 @@
     "withdrawalRequestsByUser": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'vixtormateus15@gmail.com')",
-        ".write": "auth != null && auth.token.email === 'vixtormateus15@gmail.com'",
         "$requestId": {
+          ".write": "auth != null && (auth.token.email === 'vixtormateus15@gmail.com' || (!data.exists() && auth.uid === $uid && newData.child('uid').val() === auth.uid && newData.child('status').val() === 'pending'))",
           ".validate": "newData.hasChildren(['uid','amount','pixKey','status','createdAt'])"
         }
       }
