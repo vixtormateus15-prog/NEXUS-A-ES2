@@ -838,9 +838,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
     if (pixProfileBusy) return;
     const pixKey = tempPixKey.trim();
     if (!pixKey) { showToast('Digite uma chave PIX válida.', 'error'); return; }
-    if (tempPixType === 'CPF' && pixKey.replace(/\\D/g, '').length !== 11) { showToast('A chave PIX CPF deve conter 11 números.', 'error'); return; }
-    if (tempPixType === 'E-mail' && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(pixKey)) { showToast('Informe um e-mail válido como chave PIX.', 'error'); return; }
-    if (tempPixType === 'Telefone' && !/^\\+?[0-9()\\s-]{10,20}$/.test(pixKey)) { showToast('Informe um número de celular válido como chave PIX.', 'error'); return; }
+    if (tempPixType === 'CPF' && pixKey.replace(/\D/g, '').length !== 11) { showToast('A chave PIX CPF deve conter 11 números.', 'error'); return; }
+    if (tempPixType === 'E-mail' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixKey)) { showToast('Informe um e-mail válido como chave PIX.', 'error'); return; }
+    if (tempPixType === 'Telefone' && !/^\+?[0-9()\s-]{10,20}$/.test(pixKey)) { showToast('Informe um número de celular válido como chave PIX.', 'error'); return; }
     if (!database || !firebaseUser?.uid) { showToast('Cadastro de saque indisponível.', 'error'); return; }
 
     setPixProfileBusy(true);
@@ -849,7 +849,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
       if (withdrawalProfile) {
         await update(profileRef, { pixKeyType: tempPixType, pixKey });
       } else {
-        const cpf = withdrawCpf.replace(/\\D/g, '');
+        const cpf = withdrawCpf.replace(/\D/g, '');
         const holderName = withdrawHolderName.trim();
         if (cpf.length !== 11) { showToast('Informe o CPF do titular com 11 números.', 'error'); return; }
         if (!holderName) { showToast('Informe o nome completo do titular da conta.', 'error'); return; }
