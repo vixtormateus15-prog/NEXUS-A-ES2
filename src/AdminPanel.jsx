@@ -231,20 +231,29 @@ export default function AdminPanel({ firebaseUser }) {
         const amount = Number(Number(selected.amount || 0).toFixed(2));
         if (!selected.uid || !Number.isFinite(amount) || amount <= 0) throw new Error('Pedido de saque sem usuário ou valor válido.');
         const walletRef = ref(database, 'wallets/' + selected.uid);
+        const diagnostics = { planCount:0, openReservations:0, rewardsBalance:0, depositBalance:0, totalAvailable:0 };
         const reserveResult = await runTransaction(walletRef, (current) => {
           const wallet = current || {};
           const reservations = wallet.withdrawalReservations || {};
           if (reservations[selected.id]) return wallet;
           // Ignora a própria solicitação ao verificar se já existe outro saque em aberto.
-          const hasOpen = Object.entries(reservations).some(([requestId, entry]) =>
+          const openReservations = Object.entries(reservations).filter(([requestId, entry]) =>
             requestId !== selected.id && entry && (entry.status === 'pending' || entry.status === 'approved')
           );
-          // Saques, inclusive usando depósitos, só podem ser aprovados após ativação de pelo menos um plano.
-          const hasActivatedPlan = Object.values(wallet.investments || {}).some((investment) => investment && investment.instanceId);
+          // A ativação válida é criada pelo painel em wallets/{uid}/investments/{id}, com instanceId.
+          const investments = Object.values(wallet.investments || {});
+          const activatedInvestments = investments.filter((investment) => investment && investment.instanceId);
           const rewardsBalance = Number(wallet.withdrawableBalance || 0);
           const depositBalance = Number(wallet.depositBalance || 0);
           const totalAvailable = Number((rewardsBalance + depositBalance).toFixed(2));
-          if (!hasActivatedPlan || hasOpen || totalAvailable < amount) return;
+          Object.assign(diagnostics, {
+            planCount:activatedInvestments.length,
+            openReservations:openReservations.length,
+            rewardsBalance,
+            depositBalance,
+            totalAvailable
+          });
+          if (!activatedInvestments.length || openReservations.length || totalAvailable < amount) return;
           // Usa primeiro o saldo de bônus/rendimentos e completa com o saldo de depósitos.
           const rewardsUsed = Math.min(rewardsBalance, amount);
           const depositUsed = Number((amount - rewardsUsed).toFixed(2));
@@ -256,7 +265,13 @@ export default function AdminPanel({ firebaseUser }) {
             withdrawalReservations:{...reservations,[selected.id]:record}
           };
         }, { applyLocally:false });
-        if (!reserveResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) throw new Error('É necessário ter um plano ativado, saldo total suficiente (depósitos + valores liberados) e nenhum outro saque em análise. O pedido continua pendente.');
+        if (!reserveResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) {
+          const reasons = [];
+          if (!diagnostics.planCount) reasons.push('nenhum plano ativado foi encontrado na carteira');
+          if (diagnostics.openReservations) reasons.push(diagnostics.openReservations + ' outro(s) saque(s) com reserva em aberto');
+          if (diagnostics.totalAvailable < amount) reasons.push('saldo disponível de ' + money(diagnostics.totalAvailable) + ' menor que o saque de ' + money(amount));
+          throw new Error((reasons.length ? reasons.join('; ') : 'a reserva não foi gravada') + '. O pedido continua pendente.');
+        }
       }
       if (selected._type === 'withdrawal' && status === 'rejected' && selected.status === 'approved') {
         const walletRef = ref(database, 'wallets/' + selected.uid);
