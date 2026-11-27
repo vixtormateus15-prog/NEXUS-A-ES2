@@ -29,7 +29,7 @@
           ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000000"
         },
         "checkinCount": {
-          ".validate": "newData.isNumber() && newData.val() >= 1"
+          ".validate": "newData.isNumber() && newData.val() >= 0"
         },
         "lastCheckinAt": {
           ".validate": "newData.isNumber() && newData.val() <= now && newData.val() >= now - 60000"
@@ -41,7 +41,7 @@
           ".validate": "newData.hasChildren()"
         },
         "$other": {
-          ".validate": false
+          ".validate": true
         }
       },
       ".read": "auth != null && auth.token.email === 'vixtormateus15@gmail.com'"
