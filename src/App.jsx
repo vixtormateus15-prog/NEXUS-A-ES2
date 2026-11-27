@@ -248,7 +248,7 @@ const PLATFORM_GUIDE_STEPS = [
   {
     step: 8,
     title: 'Como Sacar seu Dinheiro',
-    desc: 'Vá em "Retirada", cadastre sua chave PIX (CPF, Telefone, E-mail ou Aleatória) e informe o valor a partir de R$ 6,00. Taxa operacional de apenas 5%.',
+    desc: 'Vá em "Retirada", cadastre sua chave PIX (CPF, Telefone, E-mail ou Aleatória) e informe o valor a partir de R$ 10,00. Taxa operacional de 5%.',
     highlight: 'Saque Rápido via PIX'
   },
   {
@@ -756,6 +756,22 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
   // Solicitar Saque
   const handleRequestWithdraw = () => {
+    if (activeInvestments.length === 0) {
+      showToast('Ative pelo menos um plano para liberar o saque dos bônus e check-ins.', 'warning');
+      return;
+    }
+
+    const val = Number(String(withdrawAmount).replace(',', '.'));
+    if (!Number.isFinite(val) || val < 10) {
+      showToast('O valor mínimo para saque é de R$ 10,00.', 'error');
+      return;
+    }
+    if (val > Number(user.withdrawableBalance || 0)) {
+      showToast('Saldo disponível para retirada insuficiente.', 'error');
+      return;
+    }
+
+    // Mantém o saque bloqueado até a integração real e segura do provedor PIX.
     showToast('Saques ainda não estão conectados a um provedor seguro. Nenhuma solicitação ou débito foi realizado.', 'warning');
     return;
     if (!user.pixKey) {
@@ -1309,11 +1325,17 @@ function Dashboard({ firebaseUser, onSignOut }) {
             </div>
             <div>
               <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Retirada</h2>
-              <p className="text-xs text-slate-500">O saque sai só da carteira de rendimentos e comissões.</p>
+              <p className="text-xs text-slate-500">Com pelo menos um plano ativo, o saldo de bônus de cadastro e check-ins também pode compor o valor disponível para saque.</p>
             </div>
           </div>
 
           <UserSummaryCard />
+
+          <div className={`rounded-xl border p-3 text-xs leading-relaxed ${activeInvestments.length > 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+            {activeInvestments.length > 0
+              ? `Plano ativo detectado. Bônus de cadastro e recompensas de check-in podem compor o saldo para saque. Mínimo: R$ 10,00.`
+              : 'Para liberar o saque dos bônus de cadastro e check-ins, é necessário ter pelo menos um plano ativo. O mínimo para saque é R$ 10,00.'}
+          </div>
 
           {/* Atalho Chave PIX */}
           <button
@@ -1344,13 +1366,13 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold text-slate-900">Quanto deseja sacar?</span>
               <span className="text-[11px] text-slate-500">
-                Mínimo R$ 6,00. Disponível {formatBRL(user.withdrawableBalance)}
+                Mínimo R$ 10,00. Disponível {formatBRL(user.withdrawableBalance)}
               </span>
             </div>
 
             <input
               type="number"
-              min="6"
+              min="10"
               step="0.01"
               value={withdrawAmount}
               onChange={(e) => setWithdrawAmount(e.target.value)}
@@ -1390,7 +1412,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
             <div className="flex items-start gap-2 text-[11px] text-slate-500 pt-1">
               <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-              <span>O valor sai só da carteira de comissões e rendimentos. O saldo de depósito fica reservado para investir.</span>
+              <span>É necessário manter pelo menos um plano ativo. Bônus de cadastro e check-ins entram no saldo disponível; saldo de depósito não é sacável.</span>
             </div>
           </div>
         </div>
