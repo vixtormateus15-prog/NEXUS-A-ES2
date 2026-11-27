@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { onValue, ref, runTransaction, update } from 'firebase/database';
+import { onValue, push, ref, runTransaction, set, update } from 'firebase/database';
 import { signOut } from 'firebase/auth';
 import { auth, database } from './firebase';
 import {
   LayoutDashboard, Users, Wallet, ArrowDownToLine, ArrowUpFromLine, Gift,
   BarChart3, Settings, Search, RefreshCw, LogOut, ExternalLink, ShieldCheck,
   Copy, CheckCircle2, XCircle, Clock3, Menu, X, CircleDollarSign, Activity,
-  UserRound, ClipboardList, QrCode, AlertCircle
+  UserRound, ClipboardList, QrCode, AlertCircle, Headset, Send, MessageCircle
 } from 'lucide-react';
 
 const ADMIN_EMAIL = 'vixtormateus15@gmail.com';
@@ -21,6 +21,7 @@ const NAV = [
   ['withdrawals','Saques',ArrowUpFromLine],
   ['investment-requests','Ativações de planos',Activity],
   ['users','Clientes',Users],
+  ['support','Suporte',Headset],
   ['wallets','Carteiras',Wallet],
   ['bonuses','Bônus e check-ins',Gift],
   ['yields','Rendimentos',CircleDollarSign],
@@ -51,6 +52,11 @@ export default function AdminPanel({ firebaseUser }) {
   const [yieldDescription,setYieldDescription] = useState('Rendimento confirmado');
   const [yieldInvestmentId,setYieldInvestmentId] = useState('');
   const [yieldBusy,setYieldBusy] = useState(false);
+  const [supportThreads,setSupportThreads] = useState([]);
+  const [selectedSupportUid,setSelectedSupportUid] = useState('');
+  const [supportMessages,setSupportMessages] = useState([]);
+  const [supportReply,setSupportReply] = useState('');
+  const [supportBusy,setSupportBusy] = useState(false);
   const isAdmin = String(firebaseUser?.email || '').toLowerCase() === ADMIN_EMAIL;
 
   useEffect(() => {
@@ -76,10 +82,37 @@ export default function AdminPanel({ firebaseUser }) {
     subscribe('depositRequests',setDeposits);
     subscribe('withdrawalRequests',setWithdrawals);
     subscribe('investmentRequests',setInvestmentRequests);
+    stops.push(onValue(ref(database,'supportChats'),snap=>{
+      const raw=snap.val()||{};
+      const rows=Object.entries(raw).map(([uid,thread])=>({uid,profile:thread?.profile||{},messages:Object.entries(thread?.messages||{}).map(([id,msg])=>({id,...(msg||{})})).sort((a,b)=>Number(a.createdAt||0)-Number(b.createdAt||0))}));
+      rows.sort((a,b)=>Number(b.messages.at(-1)?.createdAt||b.profile.createdAt||0)-Number(a.messages.at(-1)?.createdAt||a.profile.createdAt||0));
+      setSupportThreads(rows);
+    },()=>setNotice('Falha ao carregar as conversas do suporte. Confira as regras do Firebase.')));
     subscribe('profiles',setProfiles);
     subscribe('wallets',setWallets);
     return () => stops.forEach(stop => stop());
   },[isAdmin]);
+
+  useEffect(()=>{
+    if(!isAdmin || !database || !selectedSupportUid){setSupportMessages([]);return undefined;}
+    return onValue(ref(database,'supportChats/'+selectedSupportUid+'/messages'),snap=>{
+      const raw=snap.val()||{};
+      setSupportMessages(Object.entries(raw).map(([id,msg])=>({id,...(msg||{})})).sort((a,b)=>Number(a.createdAt||0)-Number(b.createdAt||0)));
+    },()=>setNotice('Não foi possível abrir as mensagens desta conversa.'));
+  },[isAdmin,selectedSupportUid]);
+
+  const sendSupportReply=async(event)=>{
+    event.preventDefault();
+    const message=supportReply.trim();
+    if(!message||!selectedSupportUid||supportBusy)return;
+    setSupportBusy(true);
+    try{
+      const messageRef=push(ref(database,'supportChats/'+selectedSupportUid+'/messages'));
+      await set(messageRef,{senderUid:firebaseUser.uid,senderRole:'admin',senderName:'Suporte NEXUS',text:message,createdAt:Date.now()});
+      setSupportReply('');
+    }catch(error){setNotice('Não foi possível enviar a resposta: '+(error?.message||'erro desconhecido'));}
+    finally{setSupportBusy(false);}
+  };
 
   // Pedidos de depósito recusados antigos também ficam ocultos da fila.
   const visibleDeposits = deposits.filter((item) => item.status !== 'rejected');
@@ -479,6 +512,7 @@ export default function AdminPanel({ firebaseUser }) {
             <p className="text-[11px] leading-relaxed text-amber-200/90">Este lançamento altera o saldo interno no Firebase; não faz transferência bancária. Confira o pagamento antes de confirmar. O lançamento também atualiza o total pago e os dias creditados do plano selecionado.</p>
           </form></>:null}
         {section==='reports'?<><div><h2 className="text-2xl font-black">Relatórios</h2><p className="mt-1 text-sm text-slate-200">Resumo financeiro dos registros existentes.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{metric('Depósitos registrados',visibleDeposits.length,ArrowDownToLine)}{metric('Depósitos confirmados',money(depositTotal),CircleDollarSign,'text-emerald-300')}{metric('Saques registrados',withdrawals.length,ArrowUpFromLine)}{metric('Saques pagos',money(paidWithdrawals),CircleDollarSign,'text-cyan-300')}</div><div className="rounded-2xl border border-white/10 bg-slate-900/80 p-5"><h3 className="font-bold">Últimas movimentações</h3>{[...visibleDeposits.map(x=>({...x,_kind:'Depósito'})),...withdrawals.map(x=>({...x,_kind:'Saque'}))].sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0)).slice(0,20).map(x=><div key={x._kind+x.id} className="flex items-center justify-between gap-3 border-b border-white/5 py-3 text-sm"><div><p className="font-semibold">{x._kind} · {x.email||x.uid||'Cliente'}</p><p className="text-xs text-slate-300">{date(x.createdAt)}</p></div><div className="text-right"><p className="font-bold">{money(x.amount)}</p><p className="text-[10px] text-slate-200">{statusLabel(x.status)}</p></div></div>)}</div></>:null}
+        {section==='support'?<><div><h2 className="text-2xl font-black">Central de Suporte</h2><p className="mt-1 text-sm text-slate-200">Converse com os clientes em tempo real. Selecione uma conversa para responder.</p></div><div className="grid min-h-[620px] gap-4 lg:grid-cols-[minmax(260px,.75fr)_minmax(0,1.5fr)]"><section className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80"><div className="border-b border-white/10 p-4"><div className="flex items-center gap-2 font-bold"><MessageCircle className="text-cyan-300" size={18}/> Conversas recebidas</div><p className="mt-1 text-[11px] text-slate-300">{supportThreads.length} cliente(s) no suporte</p></div><div className="max-h-[560px] overflow-y-auto">{supportThreads.length===0?<p className="p-6 text-center text-sm text-slate-300">Nenhuma conversa iniciada ainda.</p>:supportThreads.map(thread=>{const last=thread.messages.at(-1);return <button key={thread.uid} onClick={()=>setSelectedSupportUid(thread.uid)} className={'w-full border-b border-white/5 p-4 text-left hover:bg-white/5 '+(selectedSupportUid===thread.uid?'bg-cyan-400/10':'')}><p className="truncate text-sm font-bold">{thread.profile.displayName||last?.senderName||'Cliente'}</p><p className="mt-1 truncate text-[11px] text-slate-300">{last?.text||thread.profile.email||thread.uid}</p><p className="mt-1 truncate text-[10px] text-slate-400">{thread.profile.email||thread.uid}</p></button>})}</div></section><section className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80">{!selectedSupportUid?<div className="grid flex-1 place-items-center p-8 text-center text-slate-300"><div><Headset className="mx-auto mb-3 text-cyan-300" size={42}/><p>Escolha um cliente na lista para abrir o atendimento.</p></div></div>:<><div className="border-b border-white/10 p-4"><p className="font-bold">{supportThreads.find(x=>x.uid===selectedSupportUid)?.profile.displayName||'Cliente NEXUS'}</p><p className="mt-1 break-all text-[11px] text-slate-300">{supportThreads.find(x=>x.uid===selectedSupportUid)?.profile.email||selectedSupportUid}</p></div><div className="flex-1 space-y-3 overflow-y-auto p-4">{supportMessages.length===0?<p className="py-10 text-center text-sm text-slate-300">Envie uma mensagem para iniciar o atendimento.</p>:supportMessages.map(msg=><div key={msg.id} className={'flex '+(msg.senderRole==='admin'?'justify-end':'justify-start')}><div className={'max-w-[85%] rounded-2xl px-3 py-2.5 '+(msg.senderRole==='admin'?'bg-cyan-400 text-slate-950':'bg-slate-800 text-white')}><p className="mb-1 text-[10px] font-bold opacity-70">{msg.senderRole==='admin'?'Você · Suporte':'Cliente'}</p><p className="whitespace-pre-wrap break-words text-sm">{msg.text}</p><p className="mt-1 text-right text-[9px] opacity-60">{date(msg.createdAt)}</p></div></div>)}</div><form onSubmit={sendSupportReply} className="flex items-end gap-2 border-t border-white/10 p-3"><textarea value={supportReply} onChange={e=>setSupportReply(e.target.value)} rows={2} maxLength={2000} placeholder="Digite sua resposta ao cliente..." className="min-w-0 flex-1 resize-none rounded-xl border border-white/10 bg-slate-950 p-3 text-sm text-white outline-none focus:border-cyan-400" required/><button disabled={supportBusy||!supportReply.trim()} className="flex shrink-0 items-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-slate-950 disabled:opacity-40"><Send size={16}/><span className="hidden sm:inline">{supportBusy?'Enviando...':'Enviar'}</span></button></form></>}</section></div></>:null}
         {section==='settings'?<><div><h2 className="text-2xl font-black">Configurações</h2><p className="mt-1 text-sm text-slate-200">Informações e estado de acesso do painel.</p></div><div className="max-w-2xl space-y-3 rounded-2xl border border-white/10 bg-slate-900/80 p-5"><div className="flex items-center gap-3"><ShieldCheck className="text-emerald-300" size={24}/><div><p className="font-bold">Conta administrativa reconhecida</p><p className="text-xs text-slate-200">{firebaseUser.email}</p></div></div><div className="border-t border-white/10 pt-3 text-sm text-slate-200">Projeto Firebase conectado: Realtime Database. As permissões efetivas dependem das regras publicadas no console do Firebase.</div><button onClick={()=>window.location.href='https://console.firebase.google.com/project/nexus-acoes/database/nexus-acoes-default-rtdb/data'} className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/5">Abrir Firebase Console <ExternalLink className="ml-1 inline" size={14}/></button></div></>:null}
         <footer className="border-t border-white/10 pt-4 text-center text-[11px] text-slate-300">NEXUS AÇÕES · Painel administrativo · Ações financeiras registradas exigem conferência bancária.</footer>
       </div>
