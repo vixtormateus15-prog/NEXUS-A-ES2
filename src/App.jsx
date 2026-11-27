@@ -3378,9 +3378,14 @@ export default function App() {
   if (!authReady) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">Carregando NEXUS AÇÕES...</div>;
   }
+  const isAdminRoute = window.location.pathname.replace(/\\/+$/, '') === '/admin';
+  const isAdminAccount = String(firebaseUser?.email || '').trim().toLowerCase() === 'vixtormateus15@gmail.com';
   if (!firebaseUser) {
-    return <AuthScreen />;
+    return <AuthScreen adminOnly={isAdminRoute} />;
   }
-  if (window.location.pathname === '/admin') return <AdminPanel firebaseUser={firebaseUser} />;
+  if (isAdminRoute && !isAdminAccount) {
+    return <AuthScreen adminOnly />;
+  }
+  if (isAdminRoute) return <AdminPanel firebaseUser={firebaseUser} />;
   return <Dashboard firebaseUser={firebaseUser} onSignOut={handleSignOut} />;
 }
