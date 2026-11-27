@@ -2073,6 +2073,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
                           <span className="font-extrabold text-emerald-700">{formatBRL(Number(inv.paidTotal || 0))} pago</span>
                         </div>
                         <div className="flex justify-between">
+                          <span className="text-slate-500">Dias com pagamento confirmado:</span>
+                          <span className="font-bold text-slate-900">{Number(inv.daysCredited || 0)} / {inv.days}</span>
+                        </div>
+                        <div className="flex justify-between">
                           <span className="text-slate-500">Ciclo:</span>
                           <span className="font-bold text-slate-900">
                             {inv.days} dias · projeção {formatBRL(totalExpected)}
