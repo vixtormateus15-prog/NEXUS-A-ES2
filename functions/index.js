@@ -2,9 +2,8 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
 
-initializeApp();
+initializeApp({ databaseURL: 'https://nexus-acoes-default-rtdb.firebaseio.com' });
 
-const ADMIN_EMAIL = 'vixtormateus15@gmail.com';
 const BRAZIL_OFFSET_MS = 3 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
