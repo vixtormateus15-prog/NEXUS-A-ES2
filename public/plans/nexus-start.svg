@@ -1,1 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-label="Arte luminosa do plano nexus-start"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#020617"/><stop offset=".55" stop-color="#2563eb"/><stop offset="1" stop-color="#020617"/></linearGradient><radialGradient id="halo"><stop stop-color="#22d3ee" stop-opacity=".65"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></radialGradient><linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".35" stop-color="#22d3ee"/><stop offset="1" stop-color="#2563eb"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="12" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect width="1200" height="480" fill="url(#bg)"/><circle cx="600" cy="235" r="280" fill="url(#halo)"/><g fill="none" stroke="#22d3ee" stroke-opacity=".35"><path d="M0 390 L220 260 390 330 600 130 820 300 1010 170 1200 250" stroke-width="3"/><path d="M0 420 L260 300 430 365 600 185 800 335 1030 205 1200 290" stroke-width="1.5"/></g><g filter="url(#glow)"><path d="M600 105 L690 215 L600 325 L510 215 Z" fill="url(#metal)" fill-opacity=".28" stroke="url(#metal)" stroke-width="10" stroke-linejoin="round"/><path d="M600 105 L600 325 M510 215 L690 215 M555 160 L645 270 M645 160 L555 270" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></g><g fill="#22d3ee" filter="url(#glow)"><circle cx="210" cy="115" r="7"/><circle cx="930" cy="90" r="9"/><circle cx="1020" cy="360" r="6"/><circle cx="300" cy="370" r="5"/><circle cx="810" cy="115" r="4"/></g><g fill="none" stroke="#22d3ee" stroke-width="3" opacity=".65"><ellipse cx="600" cy="225" rx="360" ry="125" transform="rotate(-12 600 225)"><animateTransform attributeName="transform" type="rotate" from="-12 600 225" to="348 600 225" dur="36s" repeatCount="indefinite"/></ellipse><ellipse cx="600" cy="225" rx="420" ry="155" transform="rotate(18 600 225)"/></g><path d="M0 455 H1200" stroke="#22d3ee" stroke-opacity=".65" stroke-width="3"/><rect x="24" y="24" width="1152" height="432" rx="28" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="2"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-label="NEXUS START: arte gráfica ilustrativa temática">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#020617"/><stop offset=".52" stop-color="#071b3d"/><stop offset="1" stop-color="#087eaa"/></linearGradient>
+ <radialGradient id="halo"><stop stop-color="#4de5ff" stop-opacity=".5"/><stop offset="1" stop-color="#4de5ff" stop-opacity="0"/></radialGradient>
+ <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".28" stop-color="#4de5ff"/><stop offset=".62" stop-color="#087eaa"/><stop offset="1" stop-color="#fff"/></linearGradient>
+ <linearGradient id="shine"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".48" stop-color="#fff" stop-opacity=".42"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+ <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse"><path d="M42 0H0V42" fill="none" stroke="#4de5ff" stroke-opacity=".13" stroke-width="1"/></pattern>
+ <filter id="glow"><feGaussianBlur stdDeviation="12" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<style>
+ .orbit{transform-origin:840px 240px;animation:spin 24s linear infinite}
+ .float{animation:float 5s ease-in-out infinite}
+ .pulse{transform-origin:840px 240px;animation:pulse 3.8s ease-in-out infinite}
+ .sweep{animation:sweep 6s ease-in-out infinite}
+ .spark{animation:spark 3s ease-in-out infinite alternate}
+ @keyframes spin{to{transform:rotate(360deg)}}
+ @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+ @keyframes pulse{0%,100%{opacity:.55;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
+ @keyframes sweep{0%{transform:translateX(-420px);opacity:0}20%{opacity:.6}70%{opacity:.35}100%{transform:translateX(1450px);opacity:0}}
+ @keyframes spark{from{opacity:.25}to{opacity:1}}
+ @media(prefers-reduced-motion:reduce){.orbit,.float,.pulse,.sweep,.spark{animation:none}}
+</style>
+<rect width="1200" height="480" fill="url(#bg)"/>
+<rect width="1200" height="480" fill="url(#grid)"/>
+<circle cx="840" cy="240" r="280" fill="url(#halo)" class="pulse"/>
+<path d="M0 390Q260 300 520 385T1200 330V480H0Z" fill="#087eaa" opacity=".15"/>
+<g fill="none" stroke="#4de5ff" stroke-opacity=".25"><circle cx="840" cy="240" r="190" stroke-width="2"/><circle cx="840" cy="240" r="225" stroke-width="1" stroke-dasharray="3 14"/></g>
+<g class="orbit" fill="none" stroke="#4de5ff" stroke-width="3" stroke-opacity=".55"><ellipse cx="840" cy="240" rx="245" ry="95" transform="rotate(-28 840 240)"/><circle cx="1082" cy="150" r="8" fill="#fff" filter="url(#glow)"/></g>
+<g class="float" filter="url(#glow)"><g transform="translate(840 240)"><path d="M-160 130V-35L0-125 160-35V130Z" fill="url(#metal)" fill-opacity=".18" stroke="#8beaff" stroke-width="4"/><path d="M-115 130V-5L0-72 115-5V130" fill="none" stroke="#b8f5ff" stroke-width="7"/><path d="M-48 130V35H48V130" fill="#06172d" stroke="#d8fbff" stroke-width="5"/><path d="M-125-10L0-82 125-10M0-82V-150" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="4"/><g fill="#9af0ff"><rect x="-105" y="10" width="22" height="36" rx="4"/><rect x="83" y="10" width="22" height="36" rx="4"/></g></g></g>
+<g class="spark" fill="#fff"><circle cx="680" cy="95" r="4"/><circle cx="1030" cy="350" r="5"/><circle cx="730" cy="390" r="3"/><circle cx="1090" cy="80" r="3"/></g>
+<g opacity=".92"><text x="78" y="178" fill="#fff" font-family="Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="7">NEXUS AÇÕES</text><text x="75" y="252" fill="#fff" font-family="Arial,sans-serif" font-size="54" font-weight="800" letter-spacing="1">NEXUS START</text><rect x="78" y="278" width="220" height="4" rx="2" fill="#4de5ff"/><text x="78" y="326" fill="#4de5ff" font-family="Arial,sans-serif" font-size="19" font-weight="700" letter-spacing="4">BASE SÓLIDA</text><text x="78" y="370" fill="#dbeafe" opacity=".78" font-family="Arial,sans-serif" font-size="16" letter-spacing="2">VISUAL ILUSTRATIVO DO SEGMENTO</text></g>
+<rect class="sweep" x="-300" y="0" width="180" height="480" fill="url(#shine)" transform="skewX(-18)"/>
+<path d="M0 1H1200V479H0Z" fill="none" stroke="#4de5ff" stroke-opacity=".35" stroke-width="2"/>
+</svg>
