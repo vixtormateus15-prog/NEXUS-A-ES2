@@ -12,6 +12,7 @@ export default function AuthScreen({ configurationMissing = false }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [inviteCode, setInviteCode] = useState(() => new URLSearchParams(window.location.search).get('code') || new URLSearchParams(window.location.search).get('ref') || '');
 
   const submit = async (event) => {
     event.preventDefault();
@@ -32,6 +33,7 @@ export default function AuthScreen({ configurationMissing = false }) {
     setBusy(true);
     try {
       if (mode === 'register') {
+        if (inviteCode.trim()) localStorage.setItem('nexus_pending_invite_code', inviteCode.trim().toUpperCase());
         await createUserWithEmailAndPassword(auth, email.trim(), password);
       } else if (mode === 'reset') {
         await sendPasswordResetEmail(auth, email.trim());
@@ -85,6 +87,13 @@ export default function AuthScreen({ configurationMissing = false }) {
                   <input className="w-full py-3 text-sm outline-none" type={showPassword ? 'text' : 'password'} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo de 6 caracteres" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label="Mostrar senha" className="text-slate-400">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                 </span>
+              </label>
+            )}
+            {mode === 'register' && (
+              <label className="block text-sm font-semibold text-slate-700">
+                Código de convite (opcional)
+                <input type="text" autoComplete="off" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 24))} placeholder="Digite o código recebido" className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-3 text-sm uppercase outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
+                <span className="mt-1 block text-[11px] font-normal text-slate-500">Se você abriu um link de convite, o código já aparece preenchido.</span>
               </label>
             )}
             {mode === 'register' && (
