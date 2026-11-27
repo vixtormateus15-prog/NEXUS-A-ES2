@@ -640,16 +640,16 @@ function Dashboard({ firebaseUser, onSignOut }) {
     }, (error) => console.error('Falha ao carregar pedidos de investimento:', error));
   }, [firebaseUser.uid]);
 
-  // Projeções ilustrativas com IDs fictícios; nunca são apresentadas como compras confirmadas.
+  // Projeções ilustrativas com IDs fictícios, atualizadas individualmente a cada 3 segundos.
   useEffect(() => {
     const values = [35, 100, 200, 300, 600, 1000];
-    const makeProjectedEvents = () => Array.from({ length: 8 }, (_, index) => ({
-      id: 'projection-' + Date.now() + '-' + index,
+    const makeProjectedEvent = () => [{
+      id: 'projection-' + Date.now(),
       maskedId: 'ID ***' + String(Math.floor(1000 + Math.random() * 9000)),
       price: values[Math.floor(Math.random() * values.length)]
-    }));
-    setProjectedActivationFeed(makeProjectedEvents());
-    const timer = setInterval(() => setProjectedActivationFeed(makeProjectedEvents()), 12000);
+    }];
+    setProjectedActivationFeed(makeProjectedEvent());
+    const timer = setInterval(() => setProjectedActivationFeed(makeProjectedEvent()), 3000);
     return () => clearInterval(timer);
   }, []);
 
@@ -2929,30 +2929,23 @@ function Dashboard({ firebaseUser, onSignOut }) {
               VIP NEXUS
             </span>
             <div className="min-w-0 flex-1 overflow-hidden">
-              <>
-                <style>{`@keyframes nexus-activation-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }`}</style>
-                <div className="flex w-max items-center" style={{ animation: 'nexus-activation-marquee 38s linear infinite' }}>
-                  {publicActivationFeed.length > 0
-                    ? [...publicActivationFeed, ...publicActivationFeed].map((event, index) => (
-                      <span key={event.id + '-' + index} className="mx-5 inline-flex items-center gap-2 whitespace-nowrap text-[11px] font-bold text-white">
-                        <span className="text-cyan-200">{event.maskedId}</span>
-                        <span>confirmou ativação do</span>
-                        <span className="text-amber-200">{event.planName || 'VIP'}</span>
-                        <span className="text-emerald-300">R$ {Number(event.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        <span className="text-cyan-300/50">✦</span>
-                      </span>
-                    ))
-                    : [...projectedActivationFeed, ...projectedActivationFeed].map((event, index) => (
-                      <span key={event.id + '-' + index} className="mx-5 inline-flex items-center gap-2 whitespace-nowrap text-[11px] font-bold text-white">
-                        <span className="text-cyan-200">{event.maskedId}</span>
-                        <span>VIP</span>
-                        <span className="text-emerald-300">R$ {Number(event.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        <span className="text-amber-200">projetado</span>
-                        <span className="text-cyan-300/50">✦</span>
-                      </span>
-                    ))}
-                </div>
-              </>
+              <div className="flex min-w-0 items-center justify-center gap-2 whitespace-nowrap text-[11px] font-bold text-white">
+                {publicActivationFeed.length > 0 ? (
+                  <>
+                    <span className="text-cyan-200">{publicActivationFeed[0].maskedId}</span>
+                    <span>confirmou ativação do</span>
+                    <span className="text-amber-200">{publicActivationFeed[0].planName || 'VIP'}</span>
+                    <span className="text-emerald-300">R$ {Number(publicActivationFeed[0].price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </>
+                ) : projectedActivationFeed.length > 0 ? (
+                  <>
+                    <span className="text-cyan-200">{projectedActivationFeed[0].maskedId}</span>
+                    <span>confirmou ativação do VIP</span>
+                    <span className="text-emerald-300">R$ {Number(projectedActivationFeed[0].price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-amber-200">projetado</span>
+                  </>
+                ) : <span className="text-blue-100/75">Planos VIP NEXUS</span>}
+              </div>
             </div>
           </div>
         </div>
