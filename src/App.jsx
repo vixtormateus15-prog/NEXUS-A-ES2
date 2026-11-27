@@ -2059,12 +2059,22 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-700">Em uso</h3>
               </div>
 
+              {investmentRequests.filter((request) => request.status === 'pending').map((request) => (
+                <div key={request.id} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div><div className="text-sm font-extrabold text-amber-950">{request.planName || 'Plano solicitado'}</div><p className="mt-1 text-xs text-amber-800">Pedido enviado · aguardando conferência do administrador</p></div>
+                    <span className="rounded-full bg-amber-200 px-3 py-1 text-[10px] font-extrabold text-amber-950">PENDENTE</span>
+                  </div>
+                  <p className="mt-2 text-xs text-amber-900">Valor: {formatBRL(request.price)}. O saldo ainda não foi debitado e o plano só começa após a aprovação.</p>
+                </div>
+              ))}
+
               {activeInvestments.length === 0 ? (
                 <div className="bg-white rounded-2xl p-8 text-center border border-slate-200/80">
                   <TrendingUp className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                   <div className="text-sm font-bold text-slate-800">Nenhum plano ativo no momento</div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Escolha um plano para acompanhar seu ciclo, os dias restantes e os valores informativos. Os pagamentos são registrados manualmente pela administração.
+                    Escolha um plano para solicitar ativação. O ciclo só começa após aprovação administrativa. Valores diários são projeções ilustrativas, não promessa de retorno nem pagamento automático; somente créditos confirmados pela administração entram no saldo sacável.
                   </p>
                   <button
                     onClick={() => setInvestSubTab('investir')}
