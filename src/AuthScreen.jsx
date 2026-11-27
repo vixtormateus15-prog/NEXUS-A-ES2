@@ -42,6 +42,7 @@ export default function AuthScreen({ configurationMissing = false }) {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
     } catch (err) {
+      if (mode === 'register') localStorage.removeItem('nexus_pending_invite_code');
       const messages = {
         'auth/email-already-in-use': 'Este e-mail já possui cadastro.',
         'auth/invalid-email': 'Informe um e-mail válido.',
