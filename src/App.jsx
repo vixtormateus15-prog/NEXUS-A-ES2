@@ -249,14 +249,14 @@ const PLATFORM_GUIDE_STEPS = [
   {
     step: 8,
     title: 'Como Sacar seu Dinheiro',
-    desc: 'Vá em "Retirada", cadastre sua chave PIX (CPF, Telefone, E-mail ou Aleatória) e informe o valor a partir de R$ 10,00. Taxa operacional de 5%.',
+    desc: 'Vá em "Retirada", cadastre sua chave PIX (CPF, Telefone ou E-mail) e informe o valor a partir de R$ 10,00. A taxa operacional é de 6%, exibida antes de confirmar.',
     highlight: 'Saque Rápido via PIX'
   },
   {
     step: 9,
     title: 'Programa de Indicação (Equipe)',
-    desc: 'Compartilhe seu código exclusivo ou link de convite na aba "Equipe". Ganhe 7% no Nível A (diretos) e 3% no Nível B (indiretos).',
-    highlight: 'Comissões em 2 Níveis'
+    desc: 'Compartilhe seu código exclusivo ou link de convite na aba "Equipe". Acompanhe os cadastros diretos e avance pelos quatro níveis de participação conforme a quantidade de convidados.',
+    highlight: 'Quatro níveis de participação'
   },
   {
     step: 10,
@@ -1999,7 +1999,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <div>
               <div className="text-[10px] font-extrabold tracking-wider uppercase text-blue-700">INDICAÇÕES</div>
               <div className="text-base font-extrabold text-slate-900 mt-0.5">Equipe</div>
-              <div className="text-xs text-slate-600">Código, link e comissões</div>
+              <div className="text-xs text-slate-600">Código, link e níveis</div>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-900 text-white flex items-center justify-center shadow-sm">
               <Users className="w-5 h-5" />
