@@ -92,3 +92,60 @@ exports.activateInvestment = onCall({ region: 'southamerica-east1' }, async (req
 
   throw new HttpsError('internal', 'A ativação não foi salva corretamente. Confira sua carteira antes de tentar novamente.');
 });
+
+exports.requestWithdrawal = onCall({ region: 'southamerica-east1' }, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Entre na sua conta para solicitar um saque.');
+  const uid = request.auth.uid;
+  const amount = Number(Number(request.data?.amount || 0).toFixed(2));
+  const requestId = String(request.data?.requestId || '');
+  const cpf = String(request.data?.cpf || '').replace(/\\D/g, '');
+  const holderName = String(request.data?.holderName || '').trim().slice(0, 120);
+  const pixKeyType = String(request.data?.pixKeyType || '');
+  const pixKey = String(request.data?.pixKey || '').trim().slice(0, 200);
+
+  if (!/^[A-Za-z0-9_-]{16,90}$/.test(requestId)) throw new HttpsError('invalid-argument', 'Identificador do saque inválido.');
+  if (!Number.isFinite(amount) || amount < 10 || amount > 100000) throw new HttpsError('invalid-argument', 'O saque mínimo é R$ 10,00 e o máximo é R$ 100.000,00.');
+  if (cpf.length !== 11) throw new HttpsError('invalid-argument', 'Informe o CPF do titular com 11 números.');
+  if (holderName.length < 3) throw new HttpsError('invalid-argument', 'Informe o nome completo do titular.');
+  if (!['CPF', 'E-mail', 'Telefone'].includes(pixKeyType) || !pixKey) throw new HttpsError('invalid-argument', 'Informe uma chave PIX válida.');
+  if (pixKeyType === 'CPF' && pixKey.replace(/\\D/g, '').length !== 11) throw new HttpsError('invalid-argument', 'A chave PIX CPF deve conter 11 números.');
+  if (pixKeyType === 'E-mail' && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(pixKey)) throw new HttpsError('invalid-argument', 'Informe um e-mail válido.');
+  if (pixKeyType === 'Telefone' && !/^\\+?[0-9()\\s-]{10,20}$/.test(pixKey)) throw new HttpsError('invalid-argument', 'Informe um telefone válido.');
+
+  const walletRef = getDatabase().ref('wallets/' + uid);
+  const now = Date.now();
+  const feeAmount = Number((amount * 0.05).toFixed(2));
+  const netAmount = Number((amount - feeAmount).toFixed(2));
+  const result = await walletRef.transaction((current) => {
+    const wallet = current || {};
+    const reservations = wallet.withdrawalReservations || {};
+    if (reservations[requestId]) return wallet;
+    const active = Object.values(wallet.investments || {}).some((item) => item && now < Number(item.firstCreditAt || 0) + Number(item.days || 0) * DAY_MS);
+    if (!active || Number(wallet.withdrawableBalance || 0) < amount) return;
+    const record = {
+      id: requestId, uid, email: request.auth.token.email || '', name: holderName,
+      amount, feeAmount, netAmount, cpf, holderName, pixKeyType, pixKey,
+      status: 'pending', createdAt: now
+    };
+    return {
+      ...wallet,
+      withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) - amount).toFixed(2)),
+      withdrawalReservations: { ...reservations, [requestId]: record }
+    };
+  }, undefined, false);
+
+  const savedWallet = result.snapshot.val() || {};
+  const reserved = savedWallet.withdrawalReservations?.[requestId];
+  if (!reserved) {
+    const active = Object.values(savedWallet.investments || {}).some((item) => item && now < Number(item.firstCreditAt || 0) + Number(item.days || 0) * DAY_MS);
+    if (!active) throw new HttpsError('failed-precondition', 'É necessário ter um plano ativo para solicitar saque.');
+    throw new HttpsError('failed-precondition', 'Saldo sacável insuficiente.');
+  }
+
+  const requestRef = getDatabase().ref('withdrawalRequests/' + requestId);
+  const requestResult = await requestRef.transaction((current) => current || reserved, undefined, false);
+  const savedRequest = requestResult.snapshot.val();
+  if (savedRequest?.uid !== uid) throw new HttpsError('already-exists', 'Não foi possível registrar o pedido. Gere uma nova solicitação.');
+  await getDatabase().ref('withdrawalRequestsByUser/' + uid + '/' + requestId).set(savedRequest);
+  return { success: true, request: savedRequest, repeated: !result.committed };
+});
