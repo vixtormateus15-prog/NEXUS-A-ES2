@@ -243,9 +243,11 @@ export default function AdminPanel({ firebaseUser }) {
           // Saldo de depósito não é considerado disponível para retirada.
           const rewardsBalance = Number(wallet.withdrawableBalance || 0);
           const depositBalance = Number(wallet.depositBalance || 0);
-          if (hasOpen || rewardsBalance < amount) return;
-          const rewardsUsed = amount;
-          const depositUsed = 0;
+          const totalAvailable = Number((rewardsBalance + depositBalance).toFixed(2));
+          if (hasOpen || totalAvailable < amount) return;
+          // Usa primeiro o saldo de bônus/rendimentos e completa com o saldo de depósitos.
+          const rewardsUsed = Math.min(rewardsBalance, amount);
+          const depositUsed = Number((amount - rewardsUsed).toFixed(2));
           const record = {...selected, status:'approved', reservedAt:Date.now(), rewardsReserved:rewardsUsed, depositReserved:depositUsed};
           return {
             ...wallet,
@@ -254,7 +256,7 @@ export default function AdminPanel({ firebaseUser }) {
             withdrawalReservations:{...reservations,[selected.id]:record}
           };
         }, { applyLocally:false });
-        if (!reserveResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) throw new Error('Saldo insuficiente, nenhum plano ativado foi encontrado ou já existe outro saque em análise. O pedido continua pendente.');
+        if (!reserveResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) throw new Error('Saldo total insuficiente (depósitos + valores liberados) ou já existe outro saque em análise. O pedido continua pendente.');
       }
       if (selected._type === 'withdrawal' && status === 'rejected' && selected.status === 'approved') {
         const walletRef = ref(database, 'wallets/' + selected.uid);
