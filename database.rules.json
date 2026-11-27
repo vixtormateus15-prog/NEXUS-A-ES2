@@ -32,7 +32,7 @@
           ".validate": "newData.isNumber() && newData.val() >= 0"
         },
         "lastCheckinAt": {
-          ".validate": "newData.isNumber() && newData.val() <= now && newData.val() >= now - 60000"
+          ".validate": "newData.isNumber() && newData.val() <= now"
         },
         "depositBalance": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000000"
