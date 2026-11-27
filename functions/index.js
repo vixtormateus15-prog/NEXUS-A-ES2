@@ -120,6 +120,8 @@ exports.requestWithdrawal = onCall({ region: 'southamerica-east1' }, async (requ
     const wallet = current || {};
     const reservations = wallet.withdrawalReservations || {};
     if (reservations[requestId]) return wallet;
+    const hasPendingRequest = Object.values(reservations).some((item) => item && (item.status === 'pending' || item.status === 'approved'));
+    if (hasPendingRequest) return;
     const active = Object.values(wallet.investments || {}).some((item) => item && now < Number(item.firstCreditAt || 0) + Number(item.days || 0) * DAY_MS);
     if (!active || Number(wallet.withdrawableBalance || 0) < amount) return;
     const record = {
@@ -137,6 +139,8 @@ exports.requestWithdrawal = onCall({ region: 'southamerica-east1' }, async (requ
   const savedWallet = result.snapshot.val() || {};
   const reserved = savedWallet.withdrawalReservations?.[requestId];
   if (!reserved) {
+    const hasPendingRequest = Object.values(savedWallet.withdrawalReservations || {}).some((item) => item && (item.status === 'pending' || item.status === 'approved'));
+    if (hasPendingRequest) throw new HttpsError('failed-precondition', 'Você já possui uma solicitação de saque em andamento. Aguarde a análise.');
     const active = Object.values(savedWallet.investments || {}).some((item) => item && now < Number(item.firstCreditAt || 0) + Number(item.days || 0) * DAY_MS);
     if (!active) throw new HttpsError('failed-precondition', 'É necessário ter um plano ativo para solicitar saque.');
     throw new HttpsError('failed-precondition', 'Saldo sacável insuficiente.');
