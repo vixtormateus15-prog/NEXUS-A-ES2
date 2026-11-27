@@ -801,48 +801,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
     // Mantém o saque bloqueado até a integração real e segura do provedor PIX.
     showToast('Saques ainda não estão conectados a um provedor seguro. Nenhuma solicitação ou débito foi realizado.', 'warning');
     return;
-    if (!user.pixKey) {
-      showToast('Cadastre sua chave PIX antes de solicitar o saque.', 'warning');
-      setTempPixType(user.pixKeyType);
-      setTempPixKey('');
-      setSubPage('pix-method');
-      return;
-    }
+    // A solicitação real será habilitada após validação e reserva de saldo no servidor.
 
-    const val = parseFloat(withdrawAmount);
-    if (isNaN(val) || val < 6) {
-      showToast('O valor mínimo para saque é de R$ 6,00.', 'error');
-      return;
-    }
-
-    if (val > user.withdrawableBalance) {
-      showToast('Saldo disponível para retirada insuficiente.', 'error');
-      return;
-    }
-
-    const fee = Number((val * 0.05).toFixed(2));
-    const netAmount = Number((val - fee).toFixed(2));
-
-    setUser((prev) => ({
-      ...prev,
-      withdrawableBalance: Number((prev.withdrawableBalance - val).toFixed(2))
-    }));
-
-    setWithdrawHistory((prev) => [
-      {
-        id: `SAQ-${Date.now().toString().slice(-6)}`,
-        gross: val,
-        fee,
-        net: netAmount,
-        pixKey: `${user.pixKeyType}: ${user.pixKey}`,
-        status: 'Em processamento',
-        date: new Date().toLocaleString('pt-BR')
-      },
-      ...prev
-    ]);
-
-    setWithdrawAmount('');
-    showToast(`Saque de ${formatBRL(netAmount)} solicitado via PIX!`, 'success');
   };
 
   // ==========================================================================
