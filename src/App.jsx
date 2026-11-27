@@ -586,8 +586,12 @@ function Dashboard({ firebaseUser, onSignOut }) {
     const completed = all.filter((item) => now >= Number(item.firstCreditAt || 0) + Number(item.days || 0) * 86400000);
     setActiveInvestments(active.sort((a, b) => Number(b.startAt || 0) - Number(a.startAt || 0)));
     setCompletedInvestments(completed.sort((a, b) => Number(b.startAt || 0) - Number(a.startAt || 0)));
-    setPlans(INITIAL_PLANS.map((plan) => ({ ...plan, bought: all.filter((item) => item.planId === plan.id).length })));
   }, [walletData.investments, checkinClock]);
+
+  useEffect(() => {
+    const all = Object.values(walletData.investments || {}).filter((item) => item && item.instanceId);
+    setPlans(INITIAL_PLANS.map((plan) => ({ ...plan, bought: all.filter((item) => item.planId === plan.id).length })));
+  }, [walletData.investments]);
 
   const showProfileError = () => {
     setToast({ message: 'Não foi possível carregar seu perfil. Confira as regras do Realtime Database.', type: 'error' });
