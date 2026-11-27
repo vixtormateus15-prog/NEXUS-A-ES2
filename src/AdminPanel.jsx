@@ -308,7 +308,20 @@ export default function AdminPanel({ firebaseUser }) {
         }, { applyLocally:false });
         if (!refundResult.snapshot.child('withdrawalRefunds').child(selected.id).exists()) throw new Error('O estorno não foi confirmado.');
       }
-      if (selected._type === 'withdrawal' && status === 'rejected') {\n        // O estorno (quando houver reserva) já foi confirmado acima. Agora remove o pedido\n        // recusado das filas administrativa e do cliente, preservando o registro de estorno.\n        await update(ref(database), {\n          ['withdrawalRequests/' + selected.id]: null,\n          ['withdrawalRequestsByUser/' + selected.uid + '/' + selected.id]: null\n        });\n        setWithdrawals((current) => current.filter((item) => item.id !== selected.id));\n        setSelected(null);\n        setFilter('all');\n        setNotice('Saque recusado e removido do histórico da fila. Se havia reserva, o saldo foi estornado.');\n        return;\n      }\n      if (selected._type === 'withdrawal' && status === 'paid') {
+      if (selected._type === 'withdrawal' && status === 'rejected') {
+        // O estorno (quando houver reserva) já foi confirmado acima. Agora remove o pedido
+        // recusado das filas administrativa e do cliente, preservando o registro de estorno.
+        await update(ref(database), {
+          ['withdrawalRequests/' + selected.id]: null,
+          ['withdrawalRequestsByUser/' + selected.uid + '/' + selected.id]: null
+        });
+        setWithdrawals((current) => current.filter((item) => item.id !== selected.id));
+        setSelected(null);
+        setFilter('all');
+        setNotice('Saque recusado e removido do histórico da fila. Se havia reserva, o saldo foi estornado.');
+        return;
+      }
+      if (selected._type === 'withdrawal' && status === 'paid') {
         if (selected.status !== 'approved') throw new Error('Aprove e reserve o saldo antes de marcar o saque como pago.');
         const walletRef = ref(database, 'wallets/' + selected.uid);
         const paidResult = await runTransaction(walletRef, (current) => {
