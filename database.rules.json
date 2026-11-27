@@ -346,6 +346,31 @@
           ".validate": false
         }
       }
+    },
+    "siteAccessEvents": {
+      ".read": "auth != null && auth.token.email === 'vixtormateus15@gmail.com'",
+      "$eventId": {
+        ".write": "!data.exists() && newData.hasChildren(['visitorId','visitType','path','createdAt'])",
+        ".validate": "newData.hasChildren(['visitorId','visitType','path','createdAt'])",
+        "visitorId": {
+          ".validate": "newData.isString() && newData.val().length >= 8 && newData.val().length <= 100"
+        },
+        "visitType": {
+          ".validate": "newData.val() === 'new' || newData.val() === 'returning'"
+        },
+        "path": {
+          ".validate": "newData.isString() && newData.val().length <= 200"
+        },
+        "referrer": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
