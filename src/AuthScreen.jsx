@@ -12,7 +12,7 @@ import {
   Sparkles, UserPlus, LogIn, ArrowLeft, KeyRound
 } from 'lucide-react';
 
-export default function AuthScreen({ configurationMissing = false }) {
+export default function AuthScreen({ configurationMissing = false, adminOnly = false }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,6 +40,10 @@ export default function AuthScreen({ configurationMissing = false }) {
       return;
     }
     const normalizedEmail = email.trim().toLowerCase();
+    if (adminOnly && mode === 'login' && normalizedEmail !== 'vixtormateus15@gmail.com') {
+      setError('Este acesso é exclusivo da conta administrativa autorizada.');
+      return;
+    }
     if (mode === 'register' && password !== confirmPassword) {
       setError('As senhas não coincidem.');
       return;
@@ -135,13 +139,13 @@ export default function AuthScreen({ configurationMissing = false }) {
             <>
               <div className="mb-6">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-300">
-                  {isRegister ? 'Comece sua jornada' : isReset ? 'Recuperação de acesso' : 'Bem-vindo de volta'}
+                  {adminOnly ? (isReset ? 'Recuperação administrativa' : 'Área restrita') : isRegister ? 'Comece sua jornada' : isReset ? 'Recuperação de acesso' : 'Bem-vindo de volta'}
                 </p>
                 <h1 className="mt-1 text-2xl font-black tracking-tight text-white">
-                  {isRegister ? 'Criar sua conta' : isReset ? 'Redefinir senha' : 'Acesse sua conta'}
+                  {adminOnly ? (isReset ? 'Redefinir senha do painel' : 'Entrar no painel administrativo') : isRegister ? 'Criar sua conta' : isReset ? 'Redefinir senha' : 'Acesse sua conta'}
                 </h1>
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
-                  {isRegister ? 'Preencha seus dados para criar seu acesso individual.' : isReset ? 'Informe o e-mail cadastrado para receber o link de recuperação.' : 'Entre com seu e-mail e senha para continuar.'}
+                  {adminOnly ? (isReset ? 'Informe o e-mail da conta administrativa para receber o link de recuperação.' : 'Entre com o e-mail autorizado e sua senha para acessar a administração da NEXUS AÇÕES.') : isRegister ? 'Preencha seus dados para criar seu acesso individual.' : isReset ? 'Informe o e-mail cadastrado para receber o link de recuperação.' : 'Entre com seu e-mail e senha para continuar.'}
                 </p>
               </div>
 
@@ -195,16 +199,14 @@ export default function AuthScreen({ configurationMissing = false }) {
 
               <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 border-t border-white/10 pt-5 text-xs font-bold">
                 {mode === 'login' && <button type="button" onClick={() => changeMode('reset')} className="text-slate-400 transition hover:text-cyan-200">Esqueci minha senha</button>}
-                <button type="button" onClick={() => changeMode(isRegister ? 'login' : 'register')} className="text-cyan-200 transition hover:text-white">
-                  {isRegister ? 'Já tenho conta — entrar' : 'Criar cadastro'}
-                </button>
+                {!adminOnly && <button type="button" onClick={() => changeMode(isRegister ? 'login' : 'register')} className="text-cyan-200 transition hover:text-white">{isRegister ? 'Já tenho conta — entrar' : 'Criar cadastro'}</button>}
                 {isReset && <button type="button" onClick={() => changeMode('login')} className="inline-flex items-center gap-1 text-slate-400 hover:text-cyan-200"><ArrowLeft className="h-3.5 w-3.5" /> Voltar ao login</button>}
               </div>
             </>
           )}
         </div>
         <div className="border-t border-white/10 bg-black/20 px-5 py-4 text-center">
-          <p className="text-[10px] leading-relaxed text-slate-500">NEXUS AÇÕES · Acesso individual pelo Firebase Authentication.</p>
+          <p className="text-[10px] leading-relaxed text-slate-500">{adminOnly ? 'NEXUS AÇÕES · Acesso administrativo protegido por e-mail e senha.' : 'NEXUS AÇÕES · Acesso individual pelo Firebase Authentication.'}</p>
           <p className="mt-1 text-[9px] text-slate-600">Nunca compartilhe sua senha ou códigos de confirmação.</p>
         </div>
       </section>
