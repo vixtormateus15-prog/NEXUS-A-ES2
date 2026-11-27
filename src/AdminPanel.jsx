@@ -90,7 +90,7 @@ export default function AdminPanel({ firebaseUser }) {
     return statusOk && hay.includes(search.toLowerCase());
   }),[all,filter,search]);
   const pendingDeposits=visibleDeposits.filter(x=>x.status==='pending' || x.status==='awaiting_payment');
-  const pendingWithdrawals=withdrawals.filter(x=>x.status==='pending' || x.status==='approved');
+  const pendingWithdrawals=withdrawals.filter(x=>x.status==='pending');
   const pendingInvestmentRequests=investmentRequests.filter(x=>x.status==='pending');
   const depositTotal=visibleDeposits.filter(x=>x.status==='paid').reduce((n,x)=>n+Number(x.amount||0),0);
   const paidWithdrawals=withdrawals.filter(x=>x.status==='paid').reduce((n,x)=>n+Number(x.amount||0),0);
@@ -254,7 +254,7 @@ export default function AdminPanel({ firebaseUser }) {
           if (reservations[selected.id]) return wallet;
           // Ignora a própria solicitação ao verificar se já existe outro saque em aberto.
           const openReservations = Object.entries(reservations).filter(([requestId, entry]) =>
-            requestId !== selected.id && entry && (entry.status === 'pending' || entry.status === 'approved')
+            requestId !== selected.id && entry && entry.status === 'pending'
           );
           // A ativação válida é criada pelo painel em wallets/{uid}/investments/{id}, com instanceId.
           const investments = Object.values(wallet.investments || {});
@@ -308,7 +308,7 @@ export default function AdminPanel({ firebaseUser }) {
         }, { applyLocally:false });
         if (!refundResult.snapshot.child('withdrawalRefunds').child(selected.id).exists()) throw new Error('O estorno não foi confirmado.');
       }
-      if (selected._type === 'withdrawal' && status === 'paid') {
+      if (selected._type === 'withdrawal' && status === 'rejected') {\n        // O estorno (quando houver reserva) já foi confirmado acima. Agora remove o pedido\n        // recusado das filas administrativa e do cliente, preservando o registro de estorno.\n        await update(ref(database), {\n          ['withdrawalRequests/' + selected.id]: null,\n          ['withdrawalRequestsByUser/' + selected.uid + '/' + selected.id]: null\n        });\n        setWithdrawals((current) => current.filter((item) => item.id !== selected.id));\n        setSelected(null);\n        setFilter('all');\n        setNotice('Saque recusado e removido do histórico da fila. Se havia reserva, o saldo foi estornado.');\n        return;\n      }\n      if (selected._type === 'withdrawal' && status === 'paid') {
         if (selected.status !== 'approved') throw new Error('Aprove e reserve o saldo antes de marcar o saque como pago.');
         const walletRef = ref(database, 'wallets/' + selected.uid);
         const paidResult = await runTransaction(walletRef, (current) => {
