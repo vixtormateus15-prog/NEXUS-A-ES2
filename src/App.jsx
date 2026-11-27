@@ -185,7 +185,7 @@ const INITIAL_PLANS = [
     accent: 'text-amber-300',
     icon: Gem,
     subtitle: 'Private Banking & Alta Frequência',
-    description: 'Tema de mercados sofisticados: serviços financeiros, estratégias quantitativas e negociação eletrônica, sem garantia de resultado.',
+    description: 'Tema de mercados sofisticados: serviços financeiros, estratégias quantitativas e negociação eletrônica.',
     badge: 'EXCLUSIVE'
   }
 ];
