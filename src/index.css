@@ -92,3 +92,34 @@ button, input, select, textarea { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .nexus-title { animation: none; }
 }
+
+
+/* Painel administrativo: leitura confortável em telas pequenas e grandes. */
+.admin-panel {
+  color: #fff;
+  font-size: 16px;
+}
+.admin-panel .text-slate-300,
+.admin-panel .text-slate-400,
+.admin-panel .text-slate-500,
+.admin-panel .text-slate-200 {
+  color: #fff !important;
+}
+.admin-panel input,
+.admin-panel textarea,
+.admin-panel select {
+  color: #fff !important;
+  font-size: 16px;
+}
+.admin-panel input::placeholder,
+.admin-panel textarea::placeholder {
+  color: #d1d5db !important;
+  opacity: 1;
+}
+.admin-panel button {
+  -webkit-tap-highlight-color: transparent;
+}
+@media (max-width: 640px) {
+  .admin-panel { font-size: 16px; }
+  .admin-panel main, .admin-panel section, .admin-panel article { scroll-margin-top: 5rem; }
+}
