@@ -2088,7 +2088,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   const firstCreditAt = Number(inv.firstCreditAt || 0);
                   const elapsed = checkinClock < firstCreditAt ? 0 : Math.min(Number(inv.days || 0), Math.floor((checkinClock - firstCreditAt) / 86400000) + 1);
                   const daysRemaining = Math.max(0, Number(inv.days || 0) - elapsed);
-                  const progressPct = Math.min(100, Math.max(0, Math.round((elapsed / Math.max(1, Number(inv.days || 1))) * 100)));
+                  const daysInCycle = Math.max(1, Number(inv.days || 1));
+                  // A barra avança continuamente durante cada dia, sem antecipar o início do ciclo.
+                  const cycleProgress = checkinClock < firstCreditAt ? 0 : Math.min(daysInCycle, (checkinClock - firstCreditAt) / 86400000 + 1);
+                  const progressPct = Math.min(100, Math.max(0, Math.round((cycleProgress / daysInCycle) * 100)));
                   const totalExpected = Number(inv.projectedTotal || (inv.dailyReturn * inv.days));
                   return (
                     <div
@@ -2116,8 +2119,12 @@ function Dashboard({ firebaseUser, onSignOut }) {
                           <span className="font-bold text-slate-900">{formatBRL(inv.dailyReturn)} (previsto)</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Tempo de início:</span>
+                          <span className="text-slate-500">Aprovado / ativado em:</span>
                           <span className="font-semibold text-slate-700">{new Date(Number(inv.startAt || 0)).toLocaleString('pt-BR')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Primeiro dia do ciclo:</span>
+                          <span className="font-semibold text-slate-700">{new Date(firstCreditAt).toLocaleString('pt-BR')}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-500">Tempo de término:</span>
@@ -2153,7 +2160,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
                           />
                         </div>
                         <div className="text-center text-[11px] text-slate-500 mt-1.5">
-                          {elapsed === 0 ? `Primeiro dia do ciclo: ${new Date(firstCreditAt).toLocaleString('pt-BR')}` : `${daysRemaining} dia(s) restante(s) no ciclo`}
+                          {elapsed === 0
+                            ? `O acompanhamento começa em ${new Date(firstCreditAt).toLocaleString('pt-BR')}`
+                            : `Progresso do ciclo: ${progressPct}% · ${daysRemaining} dia(s) restante(s)`}
                         </div>
                       </div>
 
