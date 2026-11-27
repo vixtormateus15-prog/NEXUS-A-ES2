@@ -285,6 +285,26 @@ const formatBRL = (value) => {
   });
 };
 
+// Início do dia e contagem regressiva usando o fuso oficial de Brasília.
+const getBrazilDayStart = (timestamp = Date.now()) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date(timestamp));
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day), 3, 0, 0);
+};
+
+const formatCountdown = (milliseconds) => {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+  const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+  const seconds = String(totalSeconds % 60).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+};
+
 // ============================================================================
 // COMPONENTE DE BANNER VISUAL TEMÁTICO DOS PLANOS (SVG + CSS CORPORATIVO)
 // ============================================================================
@@ -374,7 +394,16 @@ function Dashboard({ firebaseUser, onSignOut }) {
   // Toast Notification
   const [toast, setToast] = useState(null);
   const [checkinBusy, setCheckinBusy] = useState(false);
-  const [walletData, setWalletData] = useState({ withdrawableBalance: 0, lastCheckinDate: null, checkinCount: 0, signupBonusGranted: false });
+  const [checkinClock, setCheckinClock] = useState(Date.now());
+  const [walletData, setWalletData] = useState({ withdrawableBalance: 0, lastCheckinAt: null, checkinCount: 0, signupBonusGranted: false });
+  const checkinDayStart = getBrazilDayStart(checkinClock);
+  const checkinDoneToday = Number(walletData.lastCheckinAt || 0) >= checkinDayStart;
+  const checkinCountdown = formatCountdown(checkinDayStart + 86400000 - checkinClock);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCheckinClock(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Estado Financeiro e do Usuário
   const [user, setUser] = useState({
@@ -621,8 +650,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
     showToast(`+${formatBRL(earned)} creditado em "Pode ser retirado"!`, 'success');
   };
 
-  // O Realtime Database valida no servidor o intervalo mínimo de 24 horas
-  // e permite somente o acréscimo fixo de R$ 1,00 nesta carteira.
+  // O servidor libera um check-in por dia no fuso de Brasília.
   const handleDailyCheckin = async () => {
     if (!database || !firebaseUser?.uid || checkinBusy) return;
     setCheckinBusy(true);
@@ -631,7 +659,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
       const result = await runTransaction(walletRef, (current) => {
         const wallet = current || {};
         const lastCheckinAt = Number(wallet.lastCheckinAt || 0);
-        if (lastCheckinAt && Date.now() - lastCheckinAt < 24 * 60 * 60 * 1000) return;
+        if (lastCheckinAt >= getBrazilDayStart(Date.now())) return;
         return {
           withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + 1).toFixed(2)),
           checkinCount: Number(wallet.checkinCount || 0) + 1,
@@ -640,7 +668,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
       }, { applyLocally: false });
 
       if (!result.committed) {
-        showToast('Você já realizou o check-in nas últimas 24 horas. Volte depois!', 'info');
+        showToast('Seu check-in de hoje já foi realizado. O botão será liberado à meia-noite.', 'info');
         return;
       }
       const wallet = result.snapshot.val() || {};
@@ -1720,14 +1748,14 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <div>
                 <div className="text-[10px] font-extrabold tracking-[.18em] text-emerald-200">RECOMPENSA DIÁRIA</div>
                 <h3 className="mt-1 text-lg font-black">Check-in diário</h3>
-                <p className="mt-1 text-xs text-emerald-100/85">Faça seu check-in gratuito a cada 24 horas e receba R$ 1,00 em saldo interno.</p>
+                <p className="mt-1 text-xs text-emerald-100/85">Faça um check-in gratuito por dia e receba R$ 1,00 em saldo interno. A liberação acontece à meia-noite (horário de Brasília).</p>
               </div>
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-200/40 bg-white/10"><CheckCircle2 className="h-7 w-7 text-emerald-200" /></div>
             </div>
             <div className="relative mt-4 flex items-center justify-between gap-3">
               <div><div className="text-2xl font-black">R$ 1,00</div><div className="text-[10px] text-emerald-100/70">Crédito no saldo interno</div></div>
-              <button type="button" onClick={handleDailyCheckin} disabled={checkinBusy || !database || (Number(walletData.lastCheckinAt || 0) > 0 && Date.now() - Number(walletData.lastCheckinAt) < 24 * 60 * 60 * 1000)} className="rounded-xl bg-white px-4 py-3 text-xs font-black text-emerald-900 shadow-md transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60">
-                {checkinBusy ? 'Confirmando...' : (Number(walletData.lastCheckinAt || 0) > 0 && Date.now() - Number(walletData.lastCheckinAt) < 24 * 60 * 60 * 1000) ? 'Check-in realizado' : 'Fazer check-in'}
+              <button type="button" onClick={handleDailyCheckin} disabled={checkinBusy || !database || checkinDoneToday} className="rounded-xl bg-white px-4 py-3 text-xs font-black text-emerald-900 shadow-md transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60">
+                {checkinBusy ? 'Confirmando...' : checkinDoneToday ? `Volta em ${checkinCountdown}` : 'Fazer check-in'}
               </button>
             </div>
             <div className="relative mt-3 flex items-center justify-between border-t border-white/15 pt-3 text-[10px] text-emerald-100/80"><span>Check-ins acumulados: {Number(walletData.checkinCount || 0)}</span><span>Saldo de recompensas: {formatBRL(user.withdrawableBalance)}</span></div>
