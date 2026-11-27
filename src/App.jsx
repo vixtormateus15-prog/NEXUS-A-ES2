@@ -2086,11 +2086,12 @@ function Dashboard({ firebaseUser, onSignOut }) {
               ) : (
                 activeInvestments.map((inv) => {
                   const firstCreditAt = Number(inv.firstCreditAt || 0);
-                  const elapsed = checkinClock < firstCreditAt ? 0 : Math.min(Number(inv.days || 0), Math.floor((checkinClock - firstCreditAt) / 86400000) + 1);
-                  const daysRemaining = Math.max(0, Number(inv.days || 0) - elapsed);
                   const daysInCycle = Math.max(1, Number(inv.days || 1));
-                  // A barra avança continuamente durante cada dia, sem antecipar o início do ciclo.
-                  const cycleProgress = checkinClock < firstCreditAt ? 0 : Math.min(daysInCycle, (checkinClock - firstCreditAt) / 86400000 + 1);
+                  // O ciclo começa à meia-noite de Brasília; a barra avança proporcionalmente
+                  // ao tempo realmente transcorrido desde esse início.
+                  const cycleProgress = checkinClock < firstCreditAt ? 0 : Math.min(daysInCycle, (checkinClock - firstCreditAt) / 86400000);
+                  const elapsed = checkinClock < firstCreditAt ? 0 : Math.min(daysInCycle, Math.floor(cycleProgress) + (cycleProgress < daysInCycle ? 1 : 0));
+                  const daysRemaining = Math.max(0, daysInCycle - Math.floor(cycleProgress));
                   const progressPct = Math.min(100, Math.max(0, Math.round((cycleProgress / daysInCycle) * 100)));
                   const totalExpected = Number(inv.projectedTotal || (inv.dailyReturn * inv.days));
                   return (
@@ -2149,7 +2150,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                       {/* Barra de Progresso */}
                       <div>
                         <div className="flex justify-between text-[11px] font-bold text-slate-500 mb-1">
-                          <span>{elapsed}/{inv.days} dias</span>
+                          <span>{elapsed === 0 ? 'Aguardando início' : `Dia ${elapsed} de ${inv.days}`}</span>
                           <span className="text-blue-800">{progressPct}%</span>
                           <span>{daysRemaining} restantes</span>
                         </div>
@@ -2162,7 +2163,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                         <div className="text-center text-[11px] text-slate-500 mt-1.5">
                           {elapsed === 0
                             ? `O acompanhamento começa em ${new Date(firstCreditAt).toLocaleString('pt-BR')}`
-                            : `Progresso do ciclo: ${progressPct}% · ${daysRemaining} dia(s) restante(s)`}
+                            : `Dia ${elapsed} de ${inv.days} · ${progressPct}% concluído · ${daysRemaining} dia(s) restante(s)`}
                         </div>
                       </div>
 
