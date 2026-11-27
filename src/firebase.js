@@ -3,7 +3,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
-import { getFunctions } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,5 +18,4 @@ const configured = Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain &&
 export const app = configured ? (getApps().length ? getApps()[0] : initializeApp(firebaseConfig)) : null;
 export const auth = app ? getAuth(app) : null;
 export const database = app && firebaseConfig.databaseURL ? getDatabase(app) : null;
-export const functions = app ? getFunctions(app, 'southamerica-east1') : null;
 export const firebaseConfigured = configured;
