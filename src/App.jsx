@@ -450,6 +450,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
   const [withdrawHistory, setWithdrawHistory] = useState([]);
   const [investmentRequests, setInvestmentRequests] = useState([]);
   const [publicActivationFeed, setPublicActivationFeed] = useState([]);
+  const [projectedActivationFeed, setProjectedActivationFeed] = useState([]);
   const knownDepositHistoryIds = useRef(null);
   const [couponLogs, setCouponLogs] = useState([
     {
@@ -638,6 +639,19 @@ function Dashboard({ firebaseUser, onSignOut }) {
         .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)));
     }, (error) => console.error('Falha ao carregar pedidos de investimento:', error));
   }, [firebaseUser.uid]);
+
+  // Projeções ilustrativas com IDs fictícios; nunca são apresentadas como compras confirmadas.
+  useEffect(() => {
+    const values = [35, 100, 200, 300, 600, 1000];
+    const makeProjectedEvents = () => Array.from({ length: 8 }, (_, index) => ({
+      id: 'projection-' + Date.now() + '-' + index,
+      maskedId: 'ID ***' + String(Math.floor(1000 + Math.random() * 9000)),
+      price: values[Math.floor(Math.random() * values.length)]
+    }));
+    setProjectedActivationFeed(makeProjectedEvents());
+    const timer = setInterval(() => setProjectedActivationFeed(makeProjectedEvents()), 12000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Ativações públicas: somente eventos confirmados pelo painel, sem dados pessoais.
   useEffect(() => {
@@ -2907,32 +2921,38 @@ function Dashboard({ firebaseUser, onSignOut }) {
           </div>
         </header>
 
-        {/* Faixa contínua de ativações reais confirmadas pelo painel */}
+        {/* Faixa de ativações confirmadas ou projeções claramente identificadas */}
         <div className="relative z-20 overflow-hidden border-b border-cyan-300/25 bg-gradient-to-r from-slate-950 via-blue-950 to-indigo-950 py-2 shadow-md shadow-blue-950/10">
           <div className="flex items-center gap-2 px-3">
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-black tracking-wider text-emerald-200">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
-              ATIVAÇÕES
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-2.5 py-1 text-[9px] font-black tracking-wider text-cyan-100">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300" />
+              VIP NEXUS
             </span>
             <div className="min-w-0 flex-1 overflow-hidden">
-              {publicActivationFeed.length > 0 ? (
-                <>
-                  <style>{`@keyframes nexus-activation-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }`}</style>
-                  <div className="flex w-max items-center" style={{ animation: 'nexus-activation-marquee 38s linear infinite' }}>
-                    {[...publicActivationFeed, ...publicActivationFeed].map((event, index) => (
+              <>
+                <style>{`@keyframes nexus-activation-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }`}</style>
+                <div className="flex w-max items-center" style={{ animation: 'nexus-activation-marquee 38s linear infinite' }}>
+                  {publicActivationFeed.length > 0
+                    ? [...publicActivationFeed, ...publicActivationFeed].map((event, index) => (
                       <span key={event.id + '-' + index} className="mx-5 inline-flex items-center gap-2 whitespace-nowrap text-[11px] font-bold text-white">
                         <span className="text-cyan-200">{event.maskedId}</span>
-                        <span>ativou</span>
-                        <span className="text-amber-200">{event.planName}</span>
-                        <span className="text-emerald-300">R$ {Number(event.price).toLocaleString('pt-BR')}</span>
+                        <span>confirmou ativação do</span>
+                        <span className="text-amber-200">{event.planName || 'VIP'}</span>
+                        <span className="text-emerald-300">R$ {Number(event.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-cyan-300/50">✦</span>
+                      </span>
+                    ))
+                    : [...projectedActivationFeed, ...projectedActivationFeed].map((event, index) => (
+                      <span key={event.id + '-' + index} className="mx-5 inline-flex items-center gap-2 whitespace-nowrap text-[11px] font-bold text-white">
+                        <span className="text-cyan-200">{event.maskedId}</span>
+                        <span>VIP</span>
+                        <span className="text-emerald-300">R$ {Number(event.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-amber-200">projetado</span>
                         <span className="text-cyan-300/50">✦</span>
                       </span>
                     ))}
-                  </div>
-                </>
-              ) : (
-                <p className="truncate text-[10px] font-semibold text-blue-100/75">As ativações confirmadas aparecerão aqui.</p>
-              )}
+                </div>
+              </>
             </div>
           </div>
         </div>
