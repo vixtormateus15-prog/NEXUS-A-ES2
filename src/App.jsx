@@ -982,7 +982,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
               </div>
               <div className="py-2.5 flex justify-between">
                 <span className="text-slate-500">Retorno total:</span>
-                <span className="font-extrabold text-emerald-700">{formatBRL(totalReturn)}</span>
+                <span className="font-extrabold text-emerald-700">{formatBRL(totalReturn)} ({((totalReturn / currentPlan.price) * 100).toFixed(1).replace('.', ',')}% estimados)</span>
               </div>
               <div className="py-2.5 flex justify-between">
                 <span className="text-slate-500">Status:</span>
@@ -1846,7 +1846,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                     <div>
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
                       <div className="text-xs text-slate-500 mt-0.5">
-                        {formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias
+                        {formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias · {((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% acumulado estimado
                       </div>
                       <div className="text-[11px] font-bold text-blue-700 mt-0.5">
                         {plan.tag} {plan.bought > 0 ? `• ${plan.bought} feita(s)` : ''}
@@ -1923,7 +1923,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                     <div>
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
                       <div className="text-xs text-slate-500 mt-0.5">
-                        {formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias
+                        {formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias · {((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% acumulado estimado
                       </div>
                       <div className="text-[11px] font-bold text-blue-700 mt-0.5">{plan.tag}</div>
                     </div>
