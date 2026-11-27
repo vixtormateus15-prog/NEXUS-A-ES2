@@ -66,6 +66,7 @@ const INITIAL_PLANS = [
     accent: 'text-cyan-300',
     icon: Building2,
     subtitle: 'Fundo Imobiliário & Renda Fixa',
+    description: 'Tema imobiliário e de renda fixa: referências a imóveis, recebíveis e títulos. Cada modalidade possui riscos e oscilações próprios.',
     badge: 'INICIANTE'
   },
   {
@@ -82,6 +83,7 @@ const INITIAL_PLANS = [
     accent: 'text-blue-300',
     icon: Cpu,
     subtitle: 'Semicondutores & Inteligência Artificial',
+    description: 'Tema de tecnologia: setor de chips, infraestrutura digital e inteligência artificial, áreas sujeitas a mudanças rápidas de mercado.',
     badge: 'TECNOLOGIA'
   },
   {
@@ -98,6 +100,7 @@ const INITIAL_PLANS = [
     accent: 'text-emerald-300',
     icon: Wheat,
     subtitle: 'Exportação & Agronegócio Sustentável',
+    description: 'Tema do agronegócio: produção rural, cadeia de alimentos, exportação e soluções agrícolas sustentáveis.',
     badge: 'AGROTECH'
   },
   {
@@ -114,6 +117,7 @@ const INITIAL_PLANS = [
     accent: 'text-amber-300',
     icon: Factory,
     subtitle: 'Infraestrutura & Logística Pesada',
+    description: 'Tema industrial: infraestrutura, fábricas, transporte e logística, segmentos ligados à atividade econômica.',
     badge: 'INDÚSTRIA'
   },
   {
@@ -130,6 +134,7 @@ const INITIAL_PLANS = [
     accent: 'text-amber-300',
     icon: Bolt,
     subtitle: 'Energia Limpa & Matriz Solar Global',
+    description: 'Tema de energia: geração solar, fontes renováveis e transição energética, com riscos regulatórios e de mercado.',
     badge: 'ENERGIA'
   },
   {
@@ -146,6 +151,7 @@ const INITIAL_PLANS = [
     accent: 'text-purple-300',
     icon: Coins,
     subtitle: 'Ativos Digitais & Liquidez Institucional',
+    description: 'Tema de ativos digitais: blockchain e criptoativos, mercado conhecido por alta volatilidade e riscos elevados.',
     badge: 'BLOCKCHAIN'
   },
   {
@@ -162,6 +168,7 @@ const INITIAL_PLANS = [
     accent: 'text-cyan-300',
     icon: Globe,
     subtitle: 'Índices Internacionais & Câmbio',
+    description: 'Tema global: índices de mercados internacionais e variações cambiais, influenciados por fatores econômicos mundiais.',
     badge: 'GLOBAL'
   },
   {
@@ -178,6 +185,7 @@ const INITIAL_PLANS = [
     accent: 'text-amber-300',
     icon: Gem,
     subtitle: 'Private Banking & Alta Frequência',
+    description: 'Tema de mercados sofisticados: serviços financeiros, estratégias quantitativas e negociação eletrônica, sem garantia de resultado.',
     badge: 'EXCLUSIVE'
   }
 ];
@@ -313,9 +321,9 @@ const PlanVisualBanner = ({ plan, heightClass = 'h-40' }) => {
   const IconComponent = plan.icon;
   return (
     <div className={`plan-banner relative w-full ${heightClass} bg-gradient-to-br ${plan.gradient} overflow-hidden flex items-center justify-between p-5 select-none`}>
-      <img src={plan.image} alt={`Imagem ilustrativa de ${plan.subtitle}`} className="plan-banner-image absolute inset-0 w-full h-full object-cover" loading="lazy" />
-      <div className="absolute inset-0 z-[1] bg-gradient-to-r from-slate-950/90 via-slate-950/55 to-slate-950/25" />
-      <div className="plan-banner-glow absolute z-[2] -right-10 -top-12 w-44 h-44 rounded-full bg-cyan-300/25 blur-3xl" />
+      <img src={plan.image} alt={`Imagem ilustrativa de ${plan.subtitle}`} className="plan-banner-image absolute inset-0 w-full h-full object-cover brightness-125 saturate-150 contrast-110 scale-[1.03] transition-transform duration-700" loading="lazy" />
+      <div className="absolute inset-0 z-[1] bg-gradient-to-r from-slate-950/75 via-slate-950/35 to-slate-950/10" />
+      <div className="plan-banner-glow absolute z-[2] -right-10 -top-12 w-52 h-52 rounded-full bg-cyan-300/40 blur-3xl" />
       {/* Padrão geométrico de gráfico financeiro no fundo */}
       <svg className="absolute z-[3] inset-0 w-full h-full opacity-20" viewBox="0 0 400 160" preserveAspectRatio="none">
         <defs>
@@ -362,7 +370,7 @@ const PlanVisualBanner = ({ plan, heightClass = 'h-40' }) => {
         <div className="w-20 h-24 rounded-2xl bg-slate-950/60 backdrop-blur-md border border-white/20 shadow-2xl flex flex-col items-center justify-between p-2.5 transform rotate-3">
           <div className="w-full flex items-center justify-between">
             <span className="text-[8px] font-bold text-cyan-300">NX-IDX</span>
-            <span className="text-[8px] font-extrabold text-emerald-300">+{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}%</span>
+            <span className="text-[8px] font-extrabold text-emerald-300">PROJ.</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg">
             <IconComponent className="w-5 h-5 text-white" />
@@ -1120,6 +1128,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             {/* Título e preço */}
             <div className="flex items-center justify-between mt-4 pb-3 border-b border-slate-100">
               <h3 className="text-base font-extrabold text-slate-900 nexus-title">{currentPlan.name}</h3>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-500">{currentPlan.description}</p>
               <span className="text-lg font-extrabold text-blue-800">{formatBRL(currentPlan.price)}</span>
             </div>
 
@@ -1137,9 +1146,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 <span className="font-bold text-slate-900">{currentPlan.days} dias</span>
               </div>
               <div className="py-3 px-3 my-1 rounded-xl bg-emerald-50 border border-emerald-200">
-                <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-800">Projeção acumulada do ciclo</div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-800">Projeção provisória do ciclo</div>
                 <div className="text-xl font-black text-emerald-700 mt-0.5">+{((totalReturn / currentPlan.price) * 100).toFixed(1).replace('.', ',')}%</div>
-                <div className="text-xs font-semibold text-emerald-800">{formatBRL(totalReturn)} em {currentPlan.days} dias (estimativa)</div>
+                <div className="text-xs font-semibold text-emerald-800">{formatBRL(totalReturn)} em {currentPlan.days} dias · projeção provisória</div>
               </div>
               <div className="py-2.5 flex justify-between">
                 <span className="text-slate-500">Status:</span>
@@ -2036,10 +2045,11 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   <div className="p-3.5 flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
+                      <p className="mt-1 max-w-[19rem] text-[10px] leading-relaxed text-slate-500">{plan.description}</p>
                       <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias</span>
+                        <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)} · projeção provisória/dia · {plan.days} dias</span>
                         <span className="inline-flex items-center rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-1 text-xs font-extrabold text-emerald-800">
-                          +{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% acumulado estimado
+                          +{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% · projeção provisória
                         </span>
                       </div>
                       <div className="text-[11px] font-bold text-blue-700 mt-0.5">
@@ -2116,6 +2126,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   <div className="p-3.5 flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
+                      <p className="mt-1 max-w-[19rem] text-[10px] leading-relaxed text-slate-500">{plan.description}</p>
                       <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                         <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias</span>
                         <span className="inline-flex items-center rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-1 text-xs font-extrabold text-emerald-800">
