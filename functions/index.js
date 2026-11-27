@@ -98,7 +98,7 @@ exports.requestWithdrawal = onCall({ region: 'southamerica-east1' }, async (requ
   const uid = request.auth.uid;
   const amount = Number(Number(request.data?.amount || 0).toFixed(2));
   const requestId = String(request.data?.requestId || '');
-  const cpf = String(request.data?.cpf || '').replace(/\\D/g, '');
+  const cpf = String(request.data?.cpf || '').replace(/\D/g, '');
   const holderName = String(request.data?.holderName || '').trim().slice(0, 120);
   const pixKeyType = String(request.data?.pixKeyType || '');
   const pixKey = String(request.data?.pixKey || '').trim().slice(0, 200);
@@ -108,9 +108,9 @@ exports.requestWithdrawal = onCall({ region: 'southamerica-east1' }, async (requ
   if (cpf.length !== 11) throw new HttpsError('invalid-argument', 'Informe o CPF do titular com 11 números.');
   if (holderName.length < 3) throw new HttpsError('invalid-argument', 'Informe o nome completo do titular.');
   if (!['CPF', 'E-mail', 'Telefone'].includes(pixKeyType) || !pixKey) throw new HttpsError('invalid-argument', 'Informe uma chave PIX válida.');
-  if (pixKeyType === 'CPF' && pixKey.replace(/\\D/g, '').length !== 11) throw new HttpsError('invalid-argument', 'A chave PIX CPF deve conter 11 números.');
-  if (pixKeyType === 'E-mail' && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(pixKey)) throw new HttpsError('invalid-argument', 'Informe um e-mail válido.');
-  if (pixKeyType === 'Telefone' && !/^\\+?[0-9()\\s-]{10,20}$/.test(pixKey)) throw new HttpsError('invalid-argument', 'Informe um telefone válido.');
+  if (pixKeyType === 'CPF' && pixKey.replace(/\D/g, '').length !== 11) throw new HttpsError('invalid-argument', 'A chave PIX CPF deve conter 11 números.');
+  if (pixKeyType === 'E-mail' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixKey)) throw new HttpsError('invalid-argument', 'Informe um e-mail válido.');
+  if (pixKeyType === 'Telefone' && !/^\+?[0-9()\s-]{10,20}$/.test(pixKey)) throw new HttpsError('invalid-argument', 'Informe um telefone válido.');
 
   const walletRef = getDatabase().ref('wallets/' + uid);
   const now = Date.now();
