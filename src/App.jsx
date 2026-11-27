@@ -71,7 +71,7 @@ const INITIAL_PLANS = [
     id: 'nexus-tech',
     name: 'NEXUS TECH',
     image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85',
-    dailyReturn: 4.20,
+    dailyReturn: 17.50,
     days: 40,
     limit: 1,
     bought: 0,
@@ -87,7 +87,7 @@ const INITIAL_PLANS = [
     id: 'nexus-agro',
     name: 'NEXUS AGRO',
     image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=85',
-    dailyReturn: 11.11,
+    dailyReturn: 38.50,
     days: 30,
     limit: 3,
     bought: 0,
@@ -103,7 +103,7 @@ const INITIAL_PLANS = [
     id: 'nexus-industrial',
     name: 'NEXUS INDUSTRIAL',
     image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1200&q=85',
-    dailyReturn: 15.50,
+    dailyReturn: 60.50,
     days: 40,
     limit: 2,
     bought: 0,
@@ -119,7 +119,7 @@ const INITIAL_PLANS = [
     id: 'nexus-energy',
     name: 'NEXUS ENERGY',
     image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1200&q=85',
-    dailyReturn: 31.15,
+    dailyReturn: 127.50,
     days: 60,
     limit: 1,
     bought: 0,
@@ -135,7 +135,7 @@ const INITIAL_PLANS = [
     id: 'nexus-crypto',
     name: 'NEXUS CRYPTO',
     image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1200&q=85',
-    dailyReturn: 40.00,
+    dailyReturn: 212.75,
     days: 90,
     limit: 2,
     bought: 0,
@@ -151,7 +151,7 @@ const INITIAL_PLANS = [
     id: 'nexus-global',
     name: 'NEXUS GLOBAL',
     image: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=1200&q=85',
-    dailyReturn: 85.00,
+    dailyReturn: 453.28,
     days: 120,
     limit: 2,
     bought: 0,
@@ -167,11 +167,11 @@ const INITIAL_PLANS = [
     id: 'nexus-prime',
     name: 'NEXUS PRIME',
     image: 'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1200&q=85',
-    dailyReturn: 390.00,
+    dailyReturn: 817.36,
     days: 180,
     limit: 2,
     bought: 0,
-    price: 20000.00,
+    price: 5000.00,
     tag: 'Até 2 compras por conta',
     gradient: 'from-slate-950 via-amber-950 to-yellow-800',
     accent: 'text-amber-300',
@@ -1846,7 +1846,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                     <div>
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
                       <div className="text-xs text-slate-500 mt-0.5">
-                        {formatBRL(plan.dailyReturn)} por dia · {plan.days} dias
+                        {formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias
                       </div>
                       <div className="text-[11px] font-bold text-blue-700 mt-0.5">
                         {plan.tag} {plan.bought > 0 ? `• ${plan.bought} feita(s)` : ''}
@@ -1923,7 +1923,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                     <div>
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
                       <div className="text-xs text-slate-500 mt-0.5">
-                        {formatBRL(plan.dailyReturn)} por dia · {plan.days} dias
+                        {formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias
                       </div>
                       <div className="text-[11px] font-bold text-blue-700 mt-0.5">{plan.tag}</div>
                     </div>
