@@ -656,6 +656,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
         const newlyConfirmed = history.find((item) => !knownDepositHistoryIds.current.has(item.id));
         if (newlyConfirmed) {
           showToast(`Depósito de ${formatBRL(newlyConfirmed.amount)} concluído com sucesso!`, 'success');
+          setPixModalData((current) => current?.requestId === newlyConfirmed.id
+            ? { ...current, amount: Number(newlyConfirmed.amount || current.amount || 0), status: 'paid' }
+            : current);
         }
       }
       knownDepositHistoryIds.current = currentIds;
@@ -669,7 +672,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
     if (pixModalData?.status !== 'paid') return undefined;
     const timer = setTimeout(() => {
       setPixModalData((current) => current?.requestId === pixModalData.requestId ? null : current);
-    }, 3500);
+    }, 6000);
     return () => clearTimeout(timer);
   }, [pixModalData?.status, pixModalData?.requestId]);
 
@@ -3177,10 +3180,11 @@ function Dashboard({ firebaseUser, onSignOut }) {
                         className={`mx-auto h-64 w-64 max-w-full object-contain transition-opacity duration-300 ${pixModalData.status === 'paid' ? 'opacity-35' : 'opacity-100'}`}
                       />
                       {pixModalData.status === 'paid' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-emerald-50/75 px-3 text-center backdrop-blur-[2px]">
-                          <div className="rounded-2xl border-2 border-emerald-500 bg-white/95 px-5 py-4 shadow-2xl shadow-emerald-900/20">
-                            <CheckCircle2 className="mx-auto mb-2 h-12 w-12 text-emerald-600" />
-                            <div className="text-2xl font-black leading-tight text-emerald-700 sm:text-3xl">Depósito Aprovado</div>
+                        <div className="absolute inset-0 flex items-center justify-center bg-emerald-50/85 px-3 text-center backdrop-blur-[3px]">
+                          <div className="w-full max-w-xs rounded-3xl border-2 border-emerald-500 bg-white/95 px-5 py-6 shadow-2xl shadow-emerald-900/25">
+                            <CheckCircle2 className="mx-auto mb-3 h-16 w-16 text-emerald-600" />
+                            <div className="text-2xl font-black leading-tight text-emerald-700 sm:text-3xl">DEPÓSITO APROVADO!</div>
+                            <div className="mt-2 text-sm font-bold text-emerald-800">Valor confirmado: {formatBRL(pixModalData.amount)}</div>
                           </div>
                         </div>
                       )}
