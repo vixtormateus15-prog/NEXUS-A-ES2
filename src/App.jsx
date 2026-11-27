@@ -838,7 +838,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
     }
     const val = Number(String(withdrawAmount).replace(',', '.'));
     if (!Number.isFinite(val) || val < 10) { showToast('O valor mínimo para saque é de R$ 10,00.', 'error'); return; }
-    if (val > Number(user.withdrawableBalance || 0)) { showToast('Saldo disponível para retirada insuficiente.', 'error'); return; }
+    const totalAvailable = Number(walletData.withdrawableBalance || 0) + Number(walletData.depositBalance || 0);
+    if (val > totalAvailable) { showToast(`Saldo total insuficiente. Disponível: ${formatBRL(totalAvailable)} (depósitos + bônus + check-ins).`, 'error'); return; }
     if (withdrawHistory.some((item) => item.status === 'Pendente' || item.status === 'Aprovado')) {
       showToast('Você já possui um saque em análise. Aguarde a conclusão.', 'warning'); return;
     }
@@ -1385,7 +1386,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             </div>
             <div>
               <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Retirada</h2>
-              <p className="text-xs text-slate-500">Com pelo menos um plano ativo, o saldo de bônus de cadastro e check-ins também pode compor o valor disponível para saque.</p>
+              <p className="text-xs text-slate-500">Com pelo menos um plano ativado, o saldo de depósitos, bônus de cadastro e check-ins pode ser sacado.</p>
             </div>
           </div>
 
@@ -1393,8 +1394,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
           <div className={`rounded-xl border p-3 text-xs leading-relaxed ${Object.keys(walletData.investments || {}).length > 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
             {Object.keys(walletData.investments || {}).length > 0
-              ? `Plano ativado detectado. Todo o saldo sacável, incluindo bônus de cadastro e Check-ins, pode ser solicitado. Mínimo: R$ 10,00.`
-              : 'Para liberar o saque do bônus de cadastro e dos Check-ins, ative pelo menos um plano. O mínimo para saque é R$ 10,00.'}
+              ? `Plano ativado detectado. Todo o saldo disponível de depósitos + bônus de cadastro + Check-ins pode ser solicitado. Mínimo: R$ 10,00.`
+              : 'Para liberar o saque, ative pelo menos um plano. Depois disso, depósitos, bônus de cadastro e Check-ins podem ser sacados. Mínimo: R$ 10,00.'}
           </div>
 
           {/* Atalho Chave PIX */}
@@ -1450,7 +1451,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold text-slate-900">Quanto deseja sacar?</span>
               <span className="text-[11px] text-slate-500">
-                Mínimo R$ 10,00. Disponível {formatBRL(user.withdrawableBalance)}
+                Mínimo R$ 10,00. Disponível {formatBRL(Number(walletData.withdrawableBalance || 0) + Number(walletData.depositBalance || 0))}
               </span>
             </div>
 
