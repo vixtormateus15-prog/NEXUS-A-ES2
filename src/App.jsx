@@ -872,7 +872,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
       showToast('Saldo disponível para retirada insuficiente.', 'error');
       return;
     }
-    const cpfDigits = withdrawCpf.replace(/\\D/g, '');
+    const cpfDigits = withdrawCpf.replace(/\D/g, '');
     if (cpfDigits.length !== 11) {
       showToast('Informe um CPF válido com 11 números.', 'error');
       return;
@@ -886,15 +886,15 @@ function Dashboard({ firebaseUser, onSignOut }) {
       showToast('Informe a chave PIX que receberá o saque.', 'error');
       return;
     }
-    if (tempPixType === 'CPF' && pixKey.replace(/\\D/g, '').length !== 11) {
+    if (tempPixType === 'CPF' && pixKey.replace(/\D/g, '').length !== 11) {
       showToast('A chave PIX CPF deve conter 11 números.', 'error');
       return;
     }
-    if (tempPixType === 'E-mail' && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(pixKey)) {
+    if (tempPixType === 'E-mail' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixKey)) {
       showToast('Informe um e-mail válido como chave PIX.', 'error');
       return;
     }
-    if (tempPixType === 'Telefone' && !/^\\+?[0-9()\\s-]{10,20}$/.test(pixKey)) {
+    if (tempPixType === 'Telefone' && !/^\+?[0-9()\s-]{10,20}$/.test(pixKey)) {
       showToast('Informe um número de celular válido como chave PIX.', 'error');
       return;
     }
