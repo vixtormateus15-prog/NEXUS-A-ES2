@@ -2767,13 +2767,18 @@ function Dashboard({ firebaseUser, onSignOut }) {
           {/* Logo e Nome NEXUS AÇÕES Centralizados */}
           <button
             onClick={() => navigateToTab('inicio')}
-            className="flex items-center gap-2"
+            aria-label="NEXUS AÇÕES - Tela inicial"
+            className="group relative flex items-center gap-2.5 rounded-2xl px-2.5 py-1.5 bg-gradient-to-r from-slate-950 via-blue-950 to-slate-900 border border-cyan-300/30 shadow-[0_0_18px_rgba(34,211,238,0.18)] hover:shadow-[0_0_24px_rgba(34,211,238,0.32)] transition-all active:scale-[0.98]"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-900 via-indigo-800 to-cyan-600 flex items-center justify-center shadow-sm border border-amber-400/50">
-              <TrendingUp className="w-4 h-4 text-amber-300" />
-            </div>
-            <span className="font-black text-base tracking-tight nexus-title">
-              NEXUS <span>AÇÕES</span>
+            <span className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-300/10 via-transparent to-blue-400/10 opacity-80 pointer-events-none" />
+            <span className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-200 via-cyan-400 to-blue-600 flex items-center justify-center shadow-[0_0_14px_rgba(34,211,238,0.45)] border border-cyan-100/70">
+              <TrendingUp className="w-5 h-5 text-slate-950 drop-shadow-sm" />
+            </span>
+            <span className="relative flex flex-col items-start leading-none">
+              <span className="font-black text-[15px] tracking-[0.055em] text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-100 to-amber-200 drop-shadow-[0_0_7px_rgba(103,232,249,0.45)] nexus-title">
+                NEXUS <span className="text-amber-200">AÇÕES</span>
+              </span>
+              <span className="mt-1 text-[8px] font-extrabold tracking-[0.23em] text-cyan-200/90">MERCADOS &amp; ESTRATÉGIA</span>
             </span>
           </button>
 
