@@ -55,11 +55,11 @@ const INITIAL_PLANS = [
     id: 'nexus-start',
     name: 'NEXUS START',
     image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85',
-    dailyReturn: 2.50,
+    dailyReturn: 4.50,
     days: 30,
     limit: 1,
     bought: 0,
-    price: 50.00,
+    price: 35.00,
     tag: '1 compra por conta',
     gradient: 'from-blue-900 via-indigo-800 to-cyan-700',
     accent: 'text-cyan-300',
@@ -219,12 +219,12 @@ const PLATFORM_GUIDE_STEPS = [
     step: 3,
     title: 'Como Comprar um Plano de Ações',
     desc: 'Escolha um plano na vitrine (ex: NEXUS START), confira o rendimento diário e o ciclo em dias. Ao confirmar, o valor é debitado do seu Saldo.',
-    highlight: 'Planos a partir de R$ 50,00'
+    highlight: 'Planos a partir de R$ 35,00'
   },
   {
     step: 4,
     title: 'Como Adicionar Saldo (PIX)',
-    desc: 'Toque no botão central "Depositar", escolha um valor rápido ou digite entre R$ 50,00 e R$ 5.000,00 e gere seu QR Code PIX instantâneo.',
+    desc: 'Toque no botão central "Depositar", escolha um valor rápido ou digite entre R$ 35,00 e R$ 5.000,00 e consulte as condições de crédito disponíveis.',
     highlight: 'Compensação Automática'
   },
   {
@@ -688,7 +688,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
     return;
     const val = parseFloat(depositAmount);
     if (isNaN(val) || val < 50 || val > 5000) {
-      showToast('Informe um valor válido entre R$ 50,00 e R$ 5.000,00.', 'error');
+      showToast('Informe um valor válido entre R$ 35,00 e R$ 5.000,00.', 'error');
       return;
     }
 
