@@ -925,77 +925,91 @@ function Dashboard({ firebaseUser, onSignOut }) {
   };
 
   const UserSummaryCard = () => (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 mb-3">
-      {/* Linha superior: Avatar, ID/UID e Badge VIP */}
-      <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-900 to-indigo-700 text-white font-bold text-lg flex items-center justify-center shadow-inner">
-            N
+    <section className="relative isolate mb-4 overflow-hidden rounded-[2rem] border border-blue-300/30 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 p-4 shadow-2xl shadow-blue-950/25">
+      {/* Brilhos e elementos abstratos animados ao fundo */}
+      <div className="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl animate-pulse" />
+      <div className="pointer-events-none absolute -bottom-20 -left-12 h-52 w-52 rounded-full bg-indigo-500/30 blur-3xl animate-pulse" />
+      <div className="pointer-events-none absolute right-8 top-8 h-28 w-28 rounded-full border border-cyan-200/15 animate-spin" style={{ animationDuration: '24s' }} />
+      <div className="pointer-events-none absolute right-12 top-12 h-20 w-20 rounded-full border border-dashed border-blue-200/20 animate-spin" style={{ animationDuration: '18s', animationDirection: 'reverse' }} />
+      <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-20" viewBox="0 0 400 340" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M-20 260 L65 220 L120 238 L190 160 L255 180 L330 92 L430 112" fill="none" stroke="#67e8f9" strokeWidth="1.5" strokeDasharray="5 8" />
+        <path d="M-10 292 L70 252 L130 270 L200 192 L265 212 L340 124 L420 144" fill="none" stroke="#818cf8" strokeWidth="1" />
+        <circle cx="330" cy="92" r="4" fill="#a5f3fc" />
+        <circle cx="190" cy="160" r="3" fill="#a5f3fc" />
+      </svg>
+
+      <div className="relative z-10">
+        <div className="flex items-center justify-between gap-3 border-b border-white/15 pb-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-200/30 bg-gradient-to-br from-cyan-300 via-blue-500 to-indigo-600 text-2xl font-black text-white shadow-lg shadow-cyan-950/40">
+              N
+              <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-blue-950 bg-emerald-400 shadow-md" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200">NEXUS AÇÕES</div>
+              <div className="mt-0.5 truncate text-lg font-black leading-tight text-white">{user.id}</div>
+              <button
+                onClick={() => handleCopy(user.uid, 'UID copiado')}
+                className="mt-1 flex max-w-full items-center gap-1.5 text-[11px] font-medium text-blue-100/75 transition hover:text-cyan-200"
+              >
+                <span className="truncate">UID: {user.uid}</span>
+                <Copy className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+              </button>
+            </div>
           </div>
-          <div>
-            <div className="font-bold text-slate-900 text-base leading-tight">{user.id}</div>
-            <button
-              onClick={() => handleCopy(user.uid, 'UID copiado')}
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-700 mt-0.5 transition"
-            >
-              <span>UID: {user.uid}</span>
-              <Copy className="w-3.5 h-3.5 text-blue-600" />
-            </button>
+
+          <button
+            onClick={() => setSubPage('vip')}
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-amber-300/50 bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 px-3 py-2 text-xs font-black text-amber-950 shadow-lg shadow-amber-950/30 transition hover:brightness-110 active:scale-95"
+          >
+            <Crown className="h-4 w-4 fill-amber-700 text-amber-800" />
+            <span>VIP {user.vipLevel}</span>
+          </button>
+        </div>
+
+        <div className="mb-3 mt-4 flex items-center justify-between gap-2">
+          <div className="text-xs font-black uppercase tracking-[0.18em] text-white">Visão geral da carteira</div>
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/25 bg-emerald-300/10 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider text-emerald-200">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
+            Dados da conta
           </div>
         </div>
 
-        <button
-          onClick={() => setSubPage('vip')}
-          className="flex items-center gap-1.5 bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-300/80 text-amber-800 px-3 py-1.5 rounded-full text-xs font-extrabold shadow-xs active:scale-95 transition"
-        >
-          <Crown className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
-          <span>VIP {user.vipLevel}</span>
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="relative overflow-hidden rounded-2xl border border-blue-200/25 bg-gradient-to-br from-blue-500/25 to-blue-950/50 p-3.5 shadow-lg">
+            <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-blue-300/15 blur-xl" />
+            <div className="relative flex items-center gap-2 text-xs font-bold text-blue-100"><Wallet className="h-4 w-4 text-cyan-200" /> Saldo</div>
+            <div className="relative mt-2 text-xl font-black tracking-tight text-white">{formatBRL(user.depositBalance)}</div>
+            <div className="relative mt-1 text-[10px] leading-snug text-blue-100/75">Saldo para solicitar ativação de planos</div>
+          </div>
+
+          <div className="relative overflow-hidden rounded-2xl border border-emerald-200/25 bg-gradient-to-br from-emerald-400/25 to-teal-950/50 p-3.5 shadow-lg">
+            <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-emerald-300/15 blur-xl" />
+            <div className="relative flex items-center gap-2 text-xs font-bold text-emerald-100"><ArrowUpRight className="h-4 w-4 text-emerald-200" /> Pode ser retirado</div>
+            <div className="relative mt-2 text-xl font-black tracking-tight text-white">{formatBRL(user.withdrawableBalance)}</div>
+            <div className="relative mt-1 text-[10px] leading-snug text-emerald-100/75">Créditos confirmados e disponíveis</div>
+          </div>
+
+          <div className="relative overflow-hidden rounded-2xl border border-violet-200/25 bg-gradient-to-br from-violet-400/25 to-indigo-950/50 p-3.5 shadow-lg">
+            <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-violet-300/15 blur-xl" />
+            <div className="relative flex items-center gap-2 text-xs font-bold text-violet-100"><Sparkles className="h-4 w-4 text-violet-200" /> Pontos Nexus</div>
+            <div className="relative mt-2 text-xl font-black tracking-tight text-white">{user.nexusPoints.toFixed(2).replace('.', ',')}</div>
+            <div className="relative mt-1 text-[10px] leading-snug text-violet-100/75">Pontos acumulados na plataforma</div>
+          </div>
+
+          <div className="relative overflow-hidden rounded-2xl border border-amber-200/25 bg-gradient-to-br from-amber-400/25 to-amber-950/50 p-3.5 shadow-lg">
+            <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-amber-300/15 blur-xl" />
+            <div className="relative flex items-center gap-2 text-xs font-bold text-amber-100"><Award className="h-4 w-4 text-amber-200" /> Remuneração</div>
+            <div className="relative mt-2 text-xl font-black tracking-tight text-white">{formatBRL(user.commissionBalance)}</div>
+            <div className="relative mt-1 text-[10px] leading-snug text-amber-100/75">Comissões registradas na sua conta</div>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] leading-relaxed text-blue-100/85 backdrop-blur-sm">
+          <span className="font-extrabold text-cyan-200">Como entender seus valores:</span> o saldo é usado nos pedidos de planos; o valor retirável reúne créditos confirmados e liberados; pontos e remuneração são indicadores separados. Consulte cada seção para ver regras e movimentações.
+        </div>
       </div>
-
-      {/* Grid 2x2 de indicadores */}
-      <div className="grid grid-cols-2 gap-2.5 pt-3.5">
-        <div className="bg-slate-50/90 border border-slate-100 rounded-xl p-2.5">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-            <Wallet className="w-3.5 h-3.5 text-blue-700" />
-            <span>Saldo</span>
-          </div>
-          <div className="text-base font-extrabold text-slate-900 mt-1">
-            {formatBRL(user.depositBalance)}
-          </div>
-        </div>
-
-        <div className="bg-slate-50/90 border border-slate-100 rounded-xl p-2.5">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-            <ArrowUpRight className="w-3.5 h-3.5 text-cyan-600" />
-            <span>Pode ser retirado</span>
-          </div>
-          <div className="text-base font-extrabold text-slate-900 mt-1">
-            {formatBRL(user.withdrawableBalance)}
-          </div>
-        </div>
-
-        <div className="bg-slate-50/90 border border-slate-100 rounded-xl p-2.5">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Pontos Nexus</span>
-          </div>
-          <div className="text-base font-extrabold text-slate-900 mt-1">
-            {user.nexusPoints.toFixed(2).replace('.', ',')}
-          </div>
-        </div>
-
-        <div className="bg-slate-50/90 border border-slate-100 rounded-xl p-2.5">
-          <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-            <Award className="w-3.5 h-3.5 text-amber-600" />
-            <span>Remuneração</span>
-          </div>
-          <div className="text-base font-extrabold text-slate-900 mt-1">
-            {formatBRL(user.commissionBalance)}
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
   );
 
   // ==========================================================================
