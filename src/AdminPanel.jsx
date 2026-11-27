@@ -535,7 +535,7 @@ export default function AdminPanel({ firebaseUser }) {
     </div>}</section>
   </div>;
 
-  return <main className="min-h-screen bg-[#07111f] text-slate-100">
+  return <main className="admin-panel min-h-screen bg-[#07111f] text-white">
     <div className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-white/10 bg-[#091525] lg:block">{nav}</div>
     {mobileNav?<div className="fixed inset-0 z-50 bg-black/70 lg:hidden" onClick={()=>setMobileNav(false)}><aside className="h-full w-72 bg-[#091525]" onClick={e=>e.stopPropagation()}>{nav}</aside></div>:null}
     <div className="lg:pl-64">
