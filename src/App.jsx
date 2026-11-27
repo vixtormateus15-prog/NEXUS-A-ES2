@@ -54,7 +54,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-start',
     name: 'NEXUS START',
-    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85',
+    image: '/plans/nexus-start.svg',
     dailyReturn: 4.50,
     days: 23,
     limit: 1,
@@ -70,7 +70,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-tech',
     name: 'NEXUS TECH',
-    image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85',
+    image: '/plans/nexus-tech.svg',
     dailyReturn: 17.50,
     days: 17,
     limit: 1,
@@ -86,7 +86,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-agro',
     name: 'NEXUS AGRO',
-    image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=85',
+    image: '/plans/nexus-agro.svg',
     dailyReturn: 38.50,
     days: 16,
     limit: 3,
@@ -102,7 +102,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-industrial',
     name: 'NEXUS INDUSTRIAL',
-    image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1200&q=85',
+    image: '/plans/nexus-industrial.svg',
     dailyReturn: 60.50,
     days: 15,
     limit: 2,
@@ -118,7 +118,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-energy',
     name: 'NEXUS ENERGY',
-    image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=1200&q=85',
+    image: '/plans/nexus-energy.svg',
     dailyReturn: 127.50,
     days: 9,
     limit: 1,
@@ -134,7 +134,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-crypto',
     name: 'NEXUS CRYPTO',
-    image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1200&q=85',
+    image: '/plans/nexus-crypto.svg',
     dailyReturn: 212.75,
     days: 9,
     limit: 2,
@@ -150,7 +150,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-global',
     name: 'NEXUS GLOBAL',
-    image: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=1200&q=85',
+    image: '/plans/nexus-global.svg',
     dailyReturn: 453.28,
     days: 11,
     limit: 2,
@@ -166,7 +166,7 @@ const INITIAL_PLANS = [
   {
     id: 'nexus-prime',
     name: 'NEXUS PRIME',
-    image: 'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1200&q=85',
+    image: '/plans/nexus-prime.svg',
     dailyReturn: 817.36,
     days: 12,
     limit: 2,
