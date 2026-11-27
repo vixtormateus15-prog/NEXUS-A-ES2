@@ -23,7 +23,7 @@
     "wallets": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid && newData.exists() && newData.child('withdrawableBalance').isNumber() && newData.child('withdrawableBalance').val() === (data.exists() && data.child('withdrawableBalance').isNumber() ? data.child('withdrawableBalance').val() : 0) + 1 && newData.child('checkinCount').isNumber() && newData.child('checkinCount').val() === (data.exists() && data.child('checkinCount').isNumber() ? data.child('checkinCount').val() : 0) + 1 && newData.child('lastCheckinAt').isNumber() && newData.child('lastCheckinAt').val() <= now && newData.child('lastCheckinAt').val() >= now - 60000 && (!data.exists() || !data.child('lastCheckinAt').exists() || data.child('lastCheckinAt').val() <= now - 86400000)",
+        ".write": "auth != null && auth.uid === $uid && newData.exists() && newData.child('withdrawableBalance').isNumber() && newData.child('withdrawableBalance').val() === (data.exists() && data.child('withdrawableBalance').isNumber() ? data.child('withdrawableBalance').val() : 0) + 1 && newData.child('checkinCount').isNumber() && newData.child('checkinCount').val() === (data.exists() && data.child('checkinCount').isNumber() ? data.child('checkinCount').val() : 0) + 1 && newData.child('lastCheckinAt').isNumber() && newData.child('lastCheckinAt').val() <= now && newData.child('lastCheckinAt').val() >= now - 60000 && (!data.exists() || !data.child('lastCheckinAt').exists() || data.child('lastCheckinAt').val() < now - ((now - 10800000) % 86400000))",
         "withdrawableBalance": {
           ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000000"
         },
