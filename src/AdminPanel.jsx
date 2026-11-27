@@ -22,6 +22,7 @@ const NAV = [
   ['users','Clientes',Users],
   ['wallets','Carteiras',Wallet],
   ['bonuses','Bônus e check-ins',Gift],
+  ['yields','Rendimentos',CircleDollarSign],
   ['reports','Relatórios',BarChart3],
   ['settings','Configurações',Settings]
 ];
@@ -42,6 +43,11 @@ export default function AdminPanel({ firebaseUser }) {
   const [note,setNote] = useState('');
   const [busy,setBusy] = useState(false);
   const [notice,setNotice] = useState('');
+  const [yieldUid,setYieldUid] = useState('');
+  const [yieldAmount,setYieldAmount] = useState('');
+  const [yieldReference,setYieldReference] = useState('');
+  const [yieldDescription,setYieldDescription] = useState('Rendimento confirmado');
+  const [yieldBusy,setYieldBusy] = useState(false);
   const isAdmin = String(firebaseUser?.email || '').toLowerCase() === ADMIN_EMAIL;
 
   useEffect(() => {
@@ -89,6 +95,32 @@ export default function AdminPanel({ firebaseUser }) {
     setNote(item.adminNote || '');
     setNotice('');
   };
+  const creditManualYield = async (event) => {
+    event.preventDefault();
+    if (yieldBusy) return;
+    const uid = yieldUid.trim();
+    const amount = Number(String(yieldAmount).replace(',', '.'));
+    const reference = yieldReference.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    if (!uid || uid.length < 10) { setNotice('Informe o UID completo do cliente.'); return; }
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000) { setNotice('Informe um valor válido maior que zero.'); return; }
+    if (!reference || reference.length < 5 || reference.length > 100) { setNotice('Informe uma referência única com pelo menos 5 caracteres.'); return; }
+    setYieldBusy(true); setNotice('');
+    const creditedAt = Date.now();
+    try {
+      const walletRef = ref(database, 'wallets/' + uid);
+      const result = await runTransaction(walletRef, (current) => {
+        const wallet = current || {};
+        const credits = wallet.yieldCredits || {};
+        if (credits[reference]) return;
+        return { ...wallet, withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + amount).toFixed(2)), yieldCredits: { ...credits, [reference]: { amount: Number(amount.toFixed(2)), description: yieldDescription.trim() || 'Rendimento confirmado', reference, creditedAt, creditedBy: firebaseUser.uid } } };
+      }, { applyLocally: false });
+      if (!result.snapshot.child('yieldCredits').child(reference).exists()) throw new Error('Esta referência já foi utilizada ou o Firebase não confirmou o crédito. Confira a carteira antes de tentar novamente.');
+      setNotice('Crédito registrado e adicionado ao saldo sacável do cliente.');
+      setYieldAmount(''); setYieldReference(''); setYieldDescription('Rendimento confirmado');
+    } catch (error) { setNotice('Não foi possível registrar o rendimento: ' + (error?.message || 'erro desconhecido')); }
+    finally { setYieldBusy(false); }
+  };
+
   const saveRequest=async(status) => {
     if(!selected || busy) return;
     if(selected._type==='withdrawal' && status==='paid' && !txId.trim()) { setNotice('Informe o identificador da transferência antes de marcar o saque como pago.'); return; }
@@ -209,6 +241,15 @@ export default function AdminPanel({ firebaseUser }) {
         {section==='users'?<><div><h2 className="text-2xl font-black">Clientes cadastrados</h2><p className="mt-1 text-sm text-slate-200">Consulta dos perfis que as regras do Firebase permitem ao administrador visualizar.</p></div><div className="relative max-w-xl"><Search className="absolute left-3 top-3 text-slate-300" size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome, e-mail ou UID" className="w-full rounded-xl border border-white/10 bg-slate-900 py-3 pl-10 pr-3 text-sm outline-none focus:border-cyan-400"/></div><div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80">{profiles.filter(x=>[x.id,x.email,x.displayName,x.name].join(' ').toLowerCase().includes(search.toLowerCase())).map(x=><div key={x.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 p-4"><div className="min-w-0"><p className="font-bold">{x.displayName||x.name||'Cliente'}</p><p className="break-all text-xs text-slate-300">{x.email||x.id}</p><p className="break-all text-[10px] text-slate-300">UID: {x.id}</p></div><button onClick={()=>{navigator.clipboard?.writeText(x.id);setNotice('UID copiado.')}} className="rounded-lg border border-white/10 p-2 text-slate-300"><Copy size={16}/></button></div>)}{profiles.length===0?<p className="p-8 text-center text-sm text-slate-300">Nenhum perfil retornado. Verifique as permissões de leitura administrativa no Firebase.</p>:null}</div></>:null}
         {section==='wallets'?<><div><h2 className="text-2xl font-black">Carteiras</h2><p className="mt-1 text-sm text-slate-200">Consulta dos saldos registrados; não altere valores diretamente nesta tela.</p></div><div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80">{wallets.map(w=><div key={w.id} className="grid gap-2 border-b border-white/5 p-4 sm:grid-cols-4"><div className="break-all text-xs text-slate-200 sm:col-span-2">UID: {w.id}</div><div><p className="text-[10px] text-slate-300">Saldo disponível</p><p className="font-black">{money(w.withdrawableBalance)}</p></div><div><p className="text-[10px] text-slate-300">Check-ins</p><p className="font-bold">{Number(w.checkinCount||0)}</p></div></div>)}{wallets.length===0?<p className="p-8 text-center text-sm text-slate-300">Nenhuma carteira retornada.</p>:null}</div></>:null}
         {section==='bonuses'?<><div><h2 className="text-2xl font-black">Bônus e check-ins</h2><p className="mt-1 text-sm text-slate-200">Visão de acompanhamento dos dados de carteira.</p></div><div className="grid gap-3 sm:grid-cols-3">{metric('Carteiras com check-in',wallets.filter(x=>Number(x.checkinCount||0)>0).length,Gift,'text-violet-300')}{metric('Check-ins registrados',wallets.reduce((n,x)=>n+Number(x.checkinCount||0),0),CheckCircle2)}{metric('Saldo de carteira somado',money(wallets.reduce((n,x)=>n+Number(x.withdrawableBalance||0),0)),Wallet,'text-emerald-300')}</div><p className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-4 text-sm text-amber-100">Crédito e alteração de bônus precisam ser executados por uma rotina de servidor com validação e histórico imutável. Este painel não inventa nem credita valores.</p></>:null}
+        {section==='yields'?<><div><h2 className="text-2xl font-black">Lançamento manual de rendimentos</h2><p className="mt-1 text-sm text-slate-200">Registre somente valores que você já confirmou. O crédito entra no saldo sacável do cliente.</p></div>
+          <form onSubmit={creditManualYield} className="max-w-2xl space-y-4 rounded-2xl border border-white/10 bg-slate-900/80 p-5">
+            <label className="block text-xs font-bold text-slate-200">UID do cliente<input value={yieldUid} onChange={e=>setYieldUid(e.target.value)} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-sm text-white outline-none focus:border-cyan-400" placeholder="Cole o UID na aba Clientes" required/></label>
+            <label className="block text-xs font-bold text-slate-200">Valor confirmado (R$)<input type="number" min="0.01" max="1000000" step="0.01" value={yieldAmount} onChange={e=>setYieldAmount(e.target.value)} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-sm text-white outline-none focus:border-cyan-400" placeholder="0,00" required/></label>
+            <label className="block text-xs font-bold text-slate-200">Referência única do pagamento<input value={yieldReference} onChange={e=>setYieldReference(e.target.value)} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-sm text-white outline-none focus:border-cyan-400" placeholder="Ex.: INV123_DIA01" required/><span className="mt-1 block text-[11px] font-normal text-slate-300">Use uma referência diferente para cada crédito. Referências já utilizadas são bloqueadas.</span></label>
+            <label className="block text-xs font-bold text-slate-200">Descrição<input value={yieldDescription} onChange={e=>setYieldDescription(e.target.value)} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-sm text-white outline-none focus:border-cyan-400" maxLength={120}/></label>
+            <button type="submit" disabled={yieldBusy} className="w-full rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 disabled:opacity-50">{yieldBusy?'Registrando...':'Confirmar crédito no saldo sacável'}</button>
+            <p className="text-[11px] leading-relaxed text-amber-200/90">Este lançamento altera o saldo interno no Firebase; não faz transferência bancária. Confira o pagamento antes de confirmar. O registro fica salvo na carteira do cliente.</p>
+          </form></>:null}
         {section==='reports'?<><div><h2 className="text-2xl font-black">Relatórios</h2><p className="mt-1 text-sm text-slate-200">Resumo financeiro dos registros existentes.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{metric('Depósitos registrados',deposits.length,ArrowDownToLine)}{metric('Depósitos confirmados',money(depositTotal),CircleDollarSign,'text-emerald-300')}{metric('Saques registrados',withdrawals.length,ArrowUpFromLine)}{metric('Saques pagos',money(paidWithdrawals),CircleDollarSign,'text-cyan-300')}</div><div className="rounded-2xl border border-white/10 bg-slate-900/80 p-5"><h3 className="font-bold">Últimas movimentações</h3>{[...deposits.map(x=>({...x,_kind:'Depósito'})),...withdrawals.map(x=>({...x,_kind:'Saque'}))].sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0)).slice(0,20).map(x=><div key={x._kind+x.id} className="flex items-center justify-between gap-3 border-b border-white/5 py-3 text-sm"><div><p className="font-semibold">{x._kind} · {x.email||x.uid||'Cliente'}</p><p className="text-xs text-slate-300">{date(x.createdAt)}</p></div><div className="text-right"><p className="font-bold">{money(x.amount)}</p><p className="text-[10px] text-slate-200">{statusLabel(x.status)}</p></div></div>)}</div></>:null}
         {section==='settings'?<><div><h2 className="text-2xl font-black">Configurações</h2><p className="mt-1 text-sm text-slate-200">Informações e estado de acesso do painel.</p></div><div className="max-w-2xl space-y-3 rounded-2xl border border-white/10 bg-slate-900/80 p-5"><div className="flex items-center gap-3"><ShieldCheck className="text-emerald-300" size={24}/><div><p className="font-bold">Conta administrativa reconhecida</p><p className="text-xs text-slate-200">{firebaseUser.email}</p></div></div><div className="border-t border-white/10 pt-3 text-sm text-slate-200">Projeto Firebase conectado: Realtime Database. As permissões efetivas dependem das regras publicadas no console do Firebase.</div><button onClick={()=>window.location.href='https://console.firebase.google.com/project/nexus-acoes/database/nexus-acoes-default-rtdb/data'} className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/5">Abrir Firebase Console <ExternalLink className="ml-1 inline" size={14}/></button></div></>:null}
         <footer className="border-t border-white/10 pt-4 text-center text-[11px] text-slate-300">NEXUS AÇÕES · Painel administrativo · Ações financeiras registradas exigem conferência bancária.</footer>
