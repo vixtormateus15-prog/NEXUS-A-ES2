@@ -2125,9 +2125,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   return (
                     <div
                       key={inv.instanceId}
-                      className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-blue-950/10"
+                      className="overflow-hidden rounded-[1.75rem] border-2 border-blue-100 bg-white shadow-2xl shadow-blue-950/15"
                     >
-                      <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-5 text-white">
+                      <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-6 text-white">
                         <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl" />
                         <div className="absolute -bottom-16 left-1/3 h-36 w-36 rounded-full bg-indigo-400/20 blur-3xl" />
                         <div className="relative flex items-start justify-between gap-3">
@@ -2136,22 +2136,22 @@ function Dashboard({ firebaseUser, onSignOut }) {
                               <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
                               Plano em andamento
                             </div>
-                            <h4 className="text-xl font-black tracking-wide">{inv.name}</h4>
-                            <p className="mt-1 text-xs font-medium text-blue-100/80">Acompanhamento do seu ciclo</p>
+                            <h4 className="text-2xl font-black tracking-wide">{inv.name}</h4>
+                            <p className="mt-1 text-sm font-medium text-blue-100/90">Acompanhe datas, andamento e pagamentos confirmados deste plano.</p>
                           </div>
                           <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-right backdrop-blur">
                             <div className="text-[10px] font-bold uppercase tracking-wider text-blue-100">Valor do plano</div>
-                            <div className="mt-0.5 text-lg font-black text-white">{formatBRL(inv.price)}</div>
+                            <div className="mt-0.5 text-xl font-black text-white">{formatBRL(inv.price)}</div>
                           </div>
                         </div>
                         <div className="relative mt-5 grid grid-cols-2 gap-3">
                           <div className="rounded-2xl border border-emerald-300/25 bg-emerald-400/10 p-3">
-                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-100"><TrendingUp className="h-4 w-4" /> Renda diária prevista</div>
+                            <div className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-100"><TrendingUp className="h-4 w-4" /> Renda diária (prevista)</div>
                             <div className="mt-1 text-2xl font-black text-emerald-300">{formatBRL(inv.dailyReturn)}</div>
                             <div className="mt-0.5 text-[10px] text-emerald-100/70">Estimativa, não pagamento confirmado</div>
                           </div>
                           <div className="rounded-2xl border border-cyan-300/25 bg-cyan-400/10 p-3">
-                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-cyan-100"><CheckCircle2 className="h-4 w-4" /> Total confirmado</div>
+                            <div className="flex items-center gap-1.5 text-xs font-extrabold text-cyan-100"><CheckCircle2 className="h-4 w-4" /> Renda acumulada paga</div>
                             <div className="mt-1 text-2xl font-black text-white">{formatBRL(Number(inv.paidTotal || 0))}</div>
                             <div className="mt-0.5 text-[10px] text-cyan-100/70">Créditos já aprovados</div>
                           </div>
@@ -2159,25 +2159,25 @@ function Dashboard({ firebaseUser, onSignOut }) {
                       </div>
 
                       <div className="space-y-4 p-4 sm:p-5">
-                        <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-cyan-50 p-4">
+                        <div className="rounded-3xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-cyan-50 to-white p-5 shadow-md shadow-blue-900/5">
                           <div className="flex items-center justify-between gap-3">
                             <div>
                               <div className="text-xs font-extrabold uppercase tracking-wider text-blue-900">Progresso do ciclo</div>
-                              <div className="mt-1 text-2xl font-black text-slate-950">{progressPct}% <span className="text-sm font-bold text-slate-500">concluído</span></div>
+                              <div className="mt-1 text-3xl font-black text-blue-950">{progressPct}% <span className="text-base font-bold text-slate-500">do ciclo</span></div>
                             </div>
-                            <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm">
-                              <div className="text-2xl font-black text-blue-900">{daysRemaining}</div>
+                            <div className="rounded-2xl border border-blue-100 bg-white px-4 py-3 text-center shadow-md">
+                              <div className="text-3xl font-black text-blue-900">{daysRemaining}</div>
                               <div className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">dias restantes</div>
                             </div>
                           </div>
-                          <div className="mt-3 h-4 overflow-hidden rounded-full border border-blue-100 bg-white shadow-inner">
+                          <div className="mt-4 h-5 overflow-hidden rounded-full border-2 border-white bg-white shadow-inner">
                             <div className="h-full rounded-full bg-gradient-to-r from-blue-700 via-cyan-500 to-emerald-400 transition-all duration-700" style={{ width: `${progressPct}%` }} />
                           </div>
-                          <div className="mt-2 flex items-center justify-between text-xs font-bold text-slate-600">
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm font-extrabold text-slate-700">
                             <span>{elapsed === 0 ? 'Aguardando início' : `Dia ${Math.min(elapsed, daysInCycle)} de ${daysInCycle}`}</span>
                             <span>{Number(inv.daysCredited || 0)} de {inv.days} pagamentos confirmados</span>
                           </div>
-                          <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                          <p className="mt-3 rounded-xl bg-white/80 p-3 text-sm leading-relaxed text-slate-700">
                             {elapsed === 0
                               ? `Seu acompanhamento começa em ${new Date(firstCreditAt).toLocaleString('pt-BR')}.`
                               : `O ciclo está em andamento. A barra mostra o tempo transcorrido, enquanto os pagamentos são contabilizados somente após confirmação administrativa.`}
@@ -2185,13 +2185,13 @@ function Dashboard({ firebaseUser, onSignOut }) {
                         </div>
 
                         <div>
-                          <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-slate-900">
+                          <div className="mb-3 flex items-center gap-2 text-base font-black text-slate-950">
                             <Clock className="h-5 w-5 text-blue-700" /> Detalhes e datas do plano
                           </div>
                           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Aprovado / ativado em</div>
-                              <div className="mt-1 text-sm font-bold text-slate-900">{new Date(Number(inv.startAt || 0)).toLocaleString('pt-BR')}</div>
+                            <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-4 shadow-sm">
+                              <div className="text-xs font-extrabold uppercase tracking-wider text-blue-800">Aprovado / ativado em</div>
+                              <div className="mt-2 text-base font-extrabold text-slate-950">{new Date(Number(inv.startAt || 0)).toLocaleString('pt-BR')}</div>
                             </div>
                             <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                               <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Primeiro dia do ciclo</div>
@@ -2209,21 +2209,21 @@ function Dashboard({ firebaseUser, onSignOut }) {
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                          <div className="rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-md shadow-emerald-900/5">
                             <div className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-800">Pagamentos confirmados</div>
-                            <div className="mt-1 text-xl font-black text-emerald-700">{Number(inv.daysCredited || 0)} / {inv.days}</div>
+                            <div className="mt-2 text-2xl font-black text-emerald-700">{Number(inv.daysCredited || 0)} / {inv.days}</div>
                           </div>
-                          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                          <div className="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-md shadow-amber-900/5">
                             <div className="text-[10px] font-extrabold uppercase tracking-wide text-amber-800">Projeção do ciclo</div>
-                            <div className="mt-1 text-xl font-black text-amber-700">{formatBRL(totalExpected)}</div>
+                            <div className="mt-2 text-2xl font-black text-amber-700">{formatBRL(totalExpected)}</div>
                           </div>
                         </div>
 
-                        <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-950">
+                        <div className="flex items-start gap-3 rounded-3xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 text-blue-950 shadow-md">
                           <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
                           <div>
-                            <div className="text-sm font-extrabold">Como os pagamentos funcionam</div>
-                            <p className="mt-1 text-xs leading-relaxed">
+                            <div className="text-base font-black">Entenda como os pagamentos funcionam</div>
+                            <p className="mt-2 text-sm leading-relaxed">
                               Os valores diários e o total do ciclo são projeções informativas, não garantia de rendimento. A administração realiza a conferência e confirma cada pagamento manualmente. Somente valores efetivamente confirmados entram no saldo disponível para saque.
                             </p>
                           </div>
