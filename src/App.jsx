@@ -1698,6 +1698,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <div className="space-y-3">
               {list.map((item) => {
                 const successful = ['SAQUE BEM SUCEDIDO', 'Pago', 'Aprovado'].includes(item.status);
+                const displayStatus = item._kind === 'Depósito' && item.status === 'Pago' ? 'Depósito Aprovado' : item.status;
                 return (
                   <div
                     key={item.id}
@@ -1720,7 +1721,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                         <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Valor</div>
                         <div className="mt-1 text-2xl font-black tracking-tight text-blue-950">{formatBRL(item.amount)}</div>
                         <span className={`mt-3 inline-flex max-w-[150px] items-center justify-center rounded-full border px-3 py-1.5 text-center text-[11px] font-black uppercase leading-tight tracking-wide ${successful ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
-                          {item.status}
+                          {displayStatus}
                         </span>
                       </div>
                     </div>
