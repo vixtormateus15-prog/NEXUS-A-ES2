@@ -2798,21 +2798,32 @@ function Dashboard({ firebaseUser, onSignOut }) {
             </button>
           </div>
 
-          {/* Lista de Menus do Perfil */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 divide-y divide-slate-100 overflow-hidden">
-            {menuItems.map((item) => {
+          {/* Lista de Menus do Perfil - visual premium alinhado ao menu inicial */}
+          <div className="space-y-2.5">
+            {menuItems.map((item, index) => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.label}
                   onClick={item.action}
-                  className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 active:bg-slate-100 transition text-left"
+                  className="group relative w-full min-h-[76px] overflow-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-r from-slate-950 via-blue-950 to-indigo-950 px-4 py-3.5 text-left shadow-lg shadow-blue-950/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200/70 hover:shadow-xl hover:shadow-cyan-950/20 active:scale-[0.985]"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-blue-500/30 to-cyan-300/15 border border-cyan-200/20 flex items-center justify-center text-cyan-200 group-hover:from-cyan-300 group-hover:to-blue-400 group-hover:text-slate-950 transition-colors"><Icon className="w-5 h-5" /></span>
-                    <span className="text-xs font-bold text-slate-800">{item.label}</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <span className="pointer-events-none absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-cyan-300/10 to-transparent opacity-70" />
+                  <span className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full bg-cyan-300/10 blur-2xl transition-opacity group-hover:opacity-100" />
+                  <span className="relative flex items-center justify-between gap-3">
+                    <span className="flex min-w-0 items-center gap-3.5">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-100/70 bg-gradient-to-br from-cyan-200 via-cyan-400 to-blue-600 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.22)] transition-transform duration-200 group-hover:scale-105">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-extrabold leading-snug text-white">{item.label}</span>
+                        <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200/75">Acessar seção</span>
+                      </span>
+                    </span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-200/25 bg-white/[0.06] text-amber-200 transition-all group-hover:border-cyan-200/50 group-hover:bg-cyan-300/15 group-hover:text-cyan-100">
+                      <ChevronRight className="h-5 w-5" />
+                    </span>
+                  </span>
                 </button>
               );
             })}
