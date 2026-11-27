@@ -121,7 +121,14 @@ export default function AdminPanel({ firebaseUser }) {
           requestId: selected.id
         });
       }
+      // Preserva os campos obrigatórios do pedido: o Realtime Database valida
+      // o registro completo e não pode receber apenas os campos alterados.
       const changes = {
+        uid: selected.uid,
+        email: selected.email || '',
+        name: selected.name || '',
+        amount: Number(selected.amount || 0),
+        createdAt: Number(selected.createdAt || Date.now()),
         status,
         pixCopyPaste:pixCode.trim(),
         transactionId:txId.trim(),
