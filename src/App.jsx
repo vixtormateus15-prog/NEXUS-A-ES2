@@ -2898,6 +2898,6 @@ export default function App() {
   if (!firebaseUser) {
     return <AuthScreen />;
   }
-  if (window.location.pathname.replace(/\\/+$/, '') === '/admin') return <AdminPanel firebaseUser={firebaseUser} />;
+  if (window.location.pathname === '/admin') return <AdminPanel firebaseUser={firebaseUser} />;
   return <Dashboard firebaseUser={firebaseUser} onSignOut={handleSignOut} />;
 }
