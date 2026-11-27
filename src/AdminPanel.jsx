@@ -92,7 +92,7 @@ export default function AdminPanel({ firebaseUser }) {
     },()=>setNotice('Falha ao carregar as conversas do suporte. Confira as regras do Firebase.')));
     subscribe('profiles',setProfiles);
     subscribe('wallets',setWallets);
-    stops.push(onValue(ref(database,'siteAccessEvents'),snap=>{ const raw=snap.val()||{}; setSiteAccessEvents(Object.entries(raw).map(([id,value])=>({id,...(value||{})})).sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0))); },()=>setNotice('Falha ao carregar os acessos ao site. Confira as regras do Firebase.')));
+    stops.push(onValue(ref(database,'siteAccessEvents'),snap=>{ const raw=snap.val()||{}; setSiteAccessEvents(Object.entries(raw).map(([id,value])=>({id,...(value||{})})).sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0))); },(error)=>{ console.error('NEXUS: falha ao ler siteAccessEvents:',error); setNotice('Falha ao carregar acessos: '+(error?.code || error?.message || 'erro desconhecido')+'. Verifique se a conta conectada é '+ADMIN_EMAIL+' e se as regras foram publicadas.'); }));
     return () => stops.forEach(stop => stop());
   },[isAdmin]);
 
