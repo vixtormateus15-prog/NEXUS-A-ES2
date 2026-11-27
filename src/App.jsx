@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { get, onValue, ref, runTransaction, set, update } from 'firebase/database';
-import { auth, database, firebaseConfigured, functions } from './firebase';
-import { httpsCallable } from 'firebase/functions';
+import { auth, database, firebaseConfigured } from './firebase';
 import AuthScreen from './AuthScreen.jsx';
 import AdminPanel from './AdminPanel.jsx';
 import {
@@ -434,6 +433,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
   const [badges, setBadges] = useState(INITIAL_BADGES);
   const [depositHistory, setDepositHistory] = useState([]);
   const [withdrawHistory, setWithdrawHistory] = useState([]);
+  const [investmentRequests, setInvestmentRequests] = useState([]);
   const knownDepositHistoryIds = useRef(null);
   const [couponLogs, setCouponLogs] = useState([
     {
@@ -538,6 +538,16 @@ function Dashboard({ firebaseUser, onSignOut }) {
       })).sort((a,b)=>b.createdAt-a.createdAt);
       setWithdrawHistory(history);
     }, (error) => console.error('Falha ao carregar histórico de saques:', error));
+  }, [firebaseUser.uid]);
+
+  // Pedidos de ativação aguardam aprovação manual do administrador.
+  useEffect(() => {
+    if (!database || !firebaseUser?.uid) return undefined;
+    return onValue(ref(database, 'investmentRequestsByUser/' + firebaseUser.uid), (snapshot) => {
+      const raw = snapshot.val() || {};
+      setInvestmentRequests(Object.entries(raw).map(([id, item]) => ({ id, ...(item || {}) }))
+        .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)));
+    }, (error) => console.error('Falha ao carregar pedidos de investimento:', error));
   }, [firebaseUser.uid]);
 
   // Histórico de depósitos confirmado pelo painel administrativo.
@@ -645,10 +655,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Ativação financeira executada no servidor; o navegador nunca debita a carteira.
+  // O cliente apenas solicita a ativação. O administrador confere o saldo e aprova no painel.
   const handleInvestPlan = async (plan) => {
-    if (!functions || investmentBusy) {
-      showToast('Serviço de ativação indisponível. Tente novamente mais tarde.', 'error');
+    if (!database || !firebaseUser?.uid || investmentBusy) {
+      showToast('Não foi possível conectar ao sistema de investimentos.', 'error');
       return;
     }
     if (Number(user.depositBalance || 0) < Number(plan.price || 0)) {
@@ -658,22 +668,38 @@ function Dashboard({ firebaseUser, onSignOut }) {
       setDepositAmount(String(plan.price));
       return;
     }
+    if (investmentRequests.some((item) => item.planId === plan.id && item.status === 'pending')) {
+      showToast('Você já possui um pedido deste plano aguardando aprovação.', 'info');
+      setActiveTab('investir');
+      setInvestSubTab('iniciado');
+      return;
+    }
     setInvestmentBusy(true);
     try {
-      const activate = httpsCallable(functions, 'activateInvestment');
-      const activationKey = `${firebaseUser.uid.slice(0, 8)}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-      await activate({ planId: plan.id, activationKey });
-      showToast(`Plano ${plan.name} ativado. O primeiro dia do ciclo começa às 00:00 de Brasília.`, 'success');
+      const requestId = `${firebaseUser.uid.slice(0, 8)}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const requestData = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        name: user.name || user.displayName || '',
+        planId: plan.id,
+        planName: plan.name,
+        price: Number(plan.price),
+        dailyReturn: Number(plan.dailyReturn),
+        days: Number(plan.days),
+        limit: Number(plan.limit),
+        status: 'pending',
+        createdAt: Date.now()
+      };
+      await update(ref(database), {
+        ['investmentRequests/' + requestId]: requestData,
+        ['investmentRequestsByUser/' + firebaseUser.uid + '/' + requestId]: requestData
+      });
+      showToast('Pedido enviado. O plano será ativado após a conferência e aprovação no painel.', 'success');
       setSubPage(null);
       setActiveTab('investir');
       setInvestSubTab('iniciado');
     } catch (error) {
-      const messages = {
-        'functions/failed-precondition': error.message || 'Não foi possível ativar o plano.',
-        'functions/unauthenticated': 'Entre novamente na sua conta.',
-        'functions/unavailable': 'O serviço está temporariamente indisponível.'
-      };
-      showToast(messages[error?.code] || error?.message || 'Falha ao ativar o plano.', 'error');
+      showToast('Não foi possível enviar o pedido: ' + (error?.message || 'verifique sua conexão.'), 'error');
     } finally {
       setInvestmentBusy(false);
     }
@@ -803,16 +829,19 @@ function Dashboard({ firebaseUser, onSignOut }) {
     setSubPage('withdraw');
   };
 
-  // Solicitar Saque
+  // O cliente registra uma solicitação; o painel confere e reserva o saldo ao aprovar.
   const handleRequestWithdraw = async () => {
     if (withdrawalBusy) return;
     if (activeInvestments.length === 0) {
-      showToast('Ative pelo menos um plano para liberar o saque.', 'warning');
+      showToast('É necessário ter um plano ativo para solicitar saque.', 'warning');
       return;
     }
     const val = Number(String(withdrawAmount).replace(',', '.'));
     if (!Number.isFinite(val) || val < 10) { showToast('O valor mínimo para saque é de R$ 10,00.', 'error'); return; }
     if (val > Number(user.withdrawableBalance || 0)) { showToast('Saldo disponível para retirada insuficiente.', 'error'); return; }
+    if (withdrawHistory.some((item) => item.status === 'Pendente' || item.status === 'Aprovado')) {
+      showToast('Você já possui um saque em análise. Aguarde a conclusão.', 'warning'); return;
+    }
     const cpfDigits = withdrawCpf.replace(/\D/g, '');
     if (cpfDigits.length !== 11) { showToast('Informe o CPF do titular com 11 números.', 'error'); return; }
     if (!withdrawHolderName.trim()) { showToast('Informe o nome completo do titular da conta bancária.', 'error'); return; }
@@ -821,20 +850,25 @@ function Dashboard({ firebaseUser, onSignOut }) {
     if (tempPixType === 'CPF' && pixKey.replace(/\D/g, '').length !== 11) { showToast('A chave PIX CPF deve conter 11 números.', 'error'); return; }
     if (tempPixType === 'E-mail' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pixKey)) { showToast('Informe um e-mail válido como chave PIX.', 'error'); return; }
     if (tempPixType === 'Telefone' && !/^\+?[0-9()\s-]{10,20}$/.test(pixKey)) { showToast('Informe um número de celular válido como chave PIX.', 'error'); return; }
-    if (!functions) { showToast('Serviço de saque indisponível. Tente novamente mais tarde.', 'error'); return; }
+    if (!database || !firebaseUser?.uid) { showToast('Sistema de saques indisponível.', 'error'); return; }
 
     setWithdrawalBusy(true);
     try {
-      const requestWithdrawal = httpsCallable(functions, 'requestWithdrawal');
       const requestId = `${firebaseUser.uid.slice(0, 8)}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-      await requestWithdrawal({
-        requestId, amount: Number(val.toFixed(2)), cpf: cpfDigits,
-        holderName: withdrawHolderName.trim(), pixKeyType: tempPixType, pixKey
-      });
-      showToast('Solicitação enviada ao painel. O valor foi reservado do seu saldo sacável.', 'success');
+      const amount = Number(val.toFixed(2));
+      const feeAmount = Number((amount * 0.05).toFixed(2));
+      const requestData = {
+        uid: firebaseUser.uid, email: firebaseUser.email || '',
+        name: withdrawHolderName.trim(), cpf: cpfDigits, holderName: withdrawHolderName.trim(),
+        pixKeyType: tempPixType, pixKey, amount, feeAmount,
+        netAmount: Number((amount - feeAmount).toFixed(2)),
+        status: 'pending', createdAt: Date.now()
+      };
+      await set(ref(database, 'withdrawalRequests/' + requestId), requestData);
+      showToast('Solicitação enviada. O saldo só será reservado quando você aprovar no painel.', 'success');
       setWithdrawAmount('');
     } catch (error) {
-      showToast(error?.message || 'Não foi possível enviar sua solicitação de saque.', 'error');
+      showToast('Não foi possível enviar sua solicitação: ' + (error?.message || 'verifique sua conexão.'), 'error');
     } finally {
       setWithdrawalBusy(false);
     }
