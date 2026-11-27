@@ -139,6 +139,19 @@ export default function AdminPanel({ firebaseUser }) {
     setBusy(true); setNotice('');
     try {
       const path=(selected._type==='deposit'?'depositRequests/':'withdrawalRequests/')+selected.id;
+      if (selected._type === 'withdrawal' && status === 'rejected' && selected.status !== 'paid') {
+        const walletRef = ref(database, 'wallets/' + selected.uid);
+        const amount = Number(Number(selected.amount || 0).toFixed(2));
+        if (!selected.uid || !Number.isFinite(amount) || amount <= 0) throw new Error('Pedido de saque sem usuário ou valor válido.');
+        const refundResult = await runTransaction(walletRef, (current) => {
+          const wallet = current || {};
+          const refunds = wallet.withdrawalRefunds || {};
+          if (refunds[selected.id]) return wallet;
+          return { ...wallet, withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + amount).toFixed(2)), withdrawalRefunds: { ...refunds, [selected.id]: { amount, refundedAt: Date.now(), refundedBy: firebaseUser.uid } } };
+        }, { applyLocally: false });
+        if (!refundResult.snapshot.child('withdrawalRefunds').child(selected.id).exists()) throw new Error('O estorno não foi confirmado. O pedido continua sem alteração.');
+      }
+      if (selected._type === 'withdrawal' && status === 'rejected' && selected.status === 'paid') throw new Error('Um saque já marcado como pago não pode ser recusado.');
       if (selected._type === 'deposit' && status === 'paid') {
         const walletRef = ref(database, 'wallets/' + selected.uid);
         const amount = Number(Number(selected.amount || 0).toFixed(2));
@@ -174,6 +187,12 @@ export default function AdminPanel({ firebaseUser }) {
         uid: selected.uid,
         email: selected.email || '',
         name: selected.name || '',
+        cpf: selected.cpf || '',
+        holderName: selected.holderName || selected.name || '',
+        pixKeyType: selected.pixKeyType || '',
+        pixKey: selected.pixKey || '',
+        feeAmount: Number(selected.feeAmount || 0),
+        netAmount: Number(selected.netAmount || selected.amount || 0),
         amount: Number(selected.amount || 0),
         createdAt: Number(selected.createdAt || Date.now()),
         status,
@@ -189,7 +208,10 @@ export default function AdminPanel({ firebaseUser }) {
           ['depositRequestsByUser/' + selected.uid + '/' + selected.id]: changes
         });
       } else {
-        await update(ref(database,path), changes);
+        await update(ref(database), {
+          [path]: changes,
+          ['withdrawalRequestsByUser/' + selected.uid + '/' + selected.id]: changes
+        });
       }
       if (selected._type === 'deposit' && status === 'awaiting_payment') {
         // Mantém o pedido aberto no painel para o admin acompanhar até aprovar ou rejeitar.
