@@ -4,6 +4,7 @@ import { get, onValue, ref, runTransaction, set, update } from 'firebase/databas
 import { auth, database, firebaseConfigured } from './firebase';
 import AuthScreen from './AuthScreen.jsx';
 import AdminPanel from './AdminPanel.jsx';
+import SupportChat from './SupportChat.jsx';
 import {
   Menu,
   Bell,
@@ -3140,6 +3141,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             </div>
           </div>
         )}
+        <SupportChat firebaseUser={firebaseUser} displayName={user.id} />
       </div>
     </div>
   );
