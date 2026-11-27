@@ -2193,6 +2193,35 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <p className="text-xs text-slate-500 mt-0.5">Escolha o valor e gere o PIX instantâneo.</p>
           </div>
 
+          {/* Pedido pendente: recuperação disponível somente nesta página de Depósito. */}
+          {pendingDepositRequest && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800">Depósito aguardando pagamento</div>
+                  <div className="mt-1 text-xl font-black text-slate-900">{formatBRL(pendingDepositRequest.amount)}</div>
+                  <p className="mt-1 text-xs text-slate-600">
+                    Seu pedido continua salvo. Abra para consultar o código PIX e concluir o pagamento.
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-extrabold text-amber-800">Pendente</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPixModalData({
+                  amount: Number(pendingDepositRequest.amount || 0),
+                  requestId: pendingDepositRequest.id,
+                  code: pendingDepositRequest.pixCopyPaste || '',
+                  status: pendingDepositRequest.status || 'pending'
+                })}
+                className="w-full rounded-xl bg-blue-900 px-4 py-3 text-xs font-extrabold text-white shadow-sm flex items-center justify-center gap-2"
+              >
+                <QrCode className="h-4 w-4" />
+                {pendingDepositRequest.pixCopyPaste ? 'Ver código PIX e pagar' : 'Consultar pedido / aguardar código PIX'}
+              </button>
+            </div>
+          )}
+
           {/* Card Valores Rápidos */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
             <div className="flex items-center justify-between mb-1">
@@ -2841,21 +2870,6 @@ function Dashboard({ firebaseUser, onSignOut }) {
               </div>
             </div>
           </div>
-        )}
-
-        {/* O pedido continua acessível depois de fechar o modal ou atualizar a página. */}
-        {pendingDepositRequest && !pixModalData && (
-          <button
-            onClick={() => setPixModalData({
-              amount: Number(pendingDepositRequest.amount || 0),
-              requestId: pendingDepositRequest.id,
-              code: pendingDepositRequest.pixCopyPaste || '',
-              status: pendingDepositRequest.status || 'pending'
-            })}
-            className="fixed bottom-5 right-4 z-40 rounded-full bg-blue-900 px-4 py-3 text-xs font-extrabold text-white shadow-2xl ring-2 ring-white"
-          >
-            Reabrir depósito pendente
-          </button>
         )}
 
         {/* ====================================================================
