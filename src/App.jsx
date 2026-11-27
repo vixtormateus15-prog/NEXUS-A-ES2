@@ -458,6 +458,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
   const [teamFilter, setTeamFilter] = useState('all');
   const [teamSearch, setTeamSearch] = useState('');
   const [teamMembers, setTeamMembers] = useState([]);
+  const [showInviteShareModal, setShowInviteShareModal] = useState(false);
   const [guideStepIndex, setGuideStepIndex] = useState(0);
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
 
@@ -2502,27 +2503,65 @@ function Dashboard({ firebaseUser, onSignOut }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => handleCopy(user.inviteCode, 'Código copiado')}
+                onClick={() => handleCopy(user.inviteCode, 'Código de convite copiado')}
                 className="py-2.5 rounded-xl border border-slate-200 text-xs font-extrabold text-slate-800 hover:bg-slate-50 active:scale-95 transition"
               >
-                Código
+                <Copy className="inline w-3.5 h-3.5 mr-1" /> Código
               </button>
               <button
-                onClick={() => handleCopy(inviteLink, 'Link copiado')}
+                onClick={() => handleCopy(inviteLink, 'Link de convite copiado')}
                 className="py-2.5 rounded-xl border border-slate-200 text-xs font-extrabold text-slate-800 hover:bg-slate-50 active:scale-95 transition"
               >
-                Link
-              </button>
-              <button
-                onClick={() => handleCopy(`Venha investir na NEXUS AÇÕES! Cadastre-se pelo meu link: ${inviteLink}`, 'Convite pronto para enviar')}
-                className="py-2.5 rounded-xl bg-blue-900 text-white text-xs font-extrabold hover:bg-blue-800 active:scale-95 transition"
-              >
-                Enviar
+                <Copy className="inline w-3.5 h-3.5 mr-1" /> Link
               </button>
             </div>
+            <button
+              disabled={!user.inviteCode}
+              onClick={() => setShowInviteShareModal(true)}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-700 text-white text-sm font-extrabold shadow-lg shadow-blue-900/20 hover:brightness-110 active:scale-[0.99] transition disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Share2 className="w-4 h-4" /> Convidar amigos
+            </button>
           </div>
+
+          {showInviteShareModal && (
+            <div className="fixed inset-0 z-[70] bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3" onClick={() => setShowInviteShareModal(false)}>
+              <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl space-y-4" onClick={(event) => event.stopPropagation()}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700">Convite personalizado</div>
+                    <h3 className="text-lg font-black text-slate-900">Compartilhar com amigos</h3>
+                  </div>
+                  <button onClick={() => setShowInviteShareModal(false)} className="rounded-full p-2 text-slate-500 hover:bg-slate-100" aria-label="Fechar">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-slate-700">
+                  Oi! Quero compartilhar com você a NEXUS AÇÕES. Conheça a plataforma, veja como funciona e analise com calma as informações, condições e riscos antes de decidir. Investimentos envolvem riscos e não há garantia de retorno. Se fizer sentido para você, acesse pelo meu convite:
+                  <span className="mt-2 block break-all font-bold text-blue-900">{inviteLink}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Oi! Quero compartilhar com você a NEXUS AÇÕES. Conheça a plataforma, veja como funciona e analise com calma as informações, condições e riscos antes de decidir. Investimentos envolvem riscos e não há garantia de retorno. Se fizer sentido para você, acesse pelo meu convite: ${inviteLink}`)}`, '_blank', 'noopener,noreferrer')} className="rounded-xl bg-emerald-600 py-3 text-xs font-extrabold text-white hover:bg-emerald-700">WhatsApp</button>
+                  <button onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent('Conheça a NEXUS AÇÕES. Confira as informações, condições e riscos antes de decidir. Investimentos envolvem riscos e não há garantia de retorno.')}`, '_blank', 'noopener,noreferrer')} className="rounded-xl bg-sky-500 py-3 text-xs font-extrabold text-white hover:bg-sky-600">Telegram</button>
+                  <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(inviteLink)}`, '_blank', 'noopener,noreferrer')} className="rounded-xl bg-blue-700 py-3 text-xs font-extrabold text-white hover:bg-blue-800">Facebook</button>
+                  <button onClick={() => window.location.href = `sms:?body=${encodeURIComponent(`Conheça a NEXUS AÇÕES e confira as informações, condições e riscos antes de decidir: ${inviteLink}`)}`} className="rounded-xl border border-slate-200 bg-slate-50 py-3 text-xs font-extrabold text-slate-800">SMS / Mensagens</button>
+                  <button onClick={() => window.location.href = `mailto:?subject=${encodeURIComponent('Convite para conhecer a NEXUS AÇÕES')}&body=${encodeURIComponent(`Olá! Conheça a NEXUS AÇÕES e confira as informações, condições e riscos antes de decidir. Investimentos envolvem riscos e não há garantia de retorno. Acesse pelo meu convite: ${inviteLink}`)}`} className="rounded-xl border border-slate-200 bg-slate-50 py-3 text-xs font-extrabold text-slate-800">E-mail</button>
+                  <button onClick={async () => {
+                    const message = `Oi! Quero compartilhar com você a NEXUS AÇÕES. Conheça a plataforma, veja como funciona e analise com calma as informações, condições e riscos antes de decidir. Investimentos envolvem riscos e não há garantia de retorno. Se fizer sentido para você, acesse pelo meu convite: ${inviteLink}`;
+                    if (navigator.share) {
+                      try { await navigator.share({ title: 'Convite NEXUS AÇÕES', text: message, url: inviteLink }); }
+                      catch (error) { if (error?.name !== 'AbortError') showToast('Não foi possível abrir o compartilhamento do aparelho.', 'warning'); }
+                    } else {
+                      handleCopy(message, 'Convite copiado');
+                    }
+                  }} className="col-span-2 rounded-xl bg-gradient-to-r from-blue-950 to-indigo-800 py-3.5 text-xs font-extrabold text-white shadow-md hover:brightness-110">Mais aplicativos · Compartilhar pelo celular</button>
+                </div>
+                <p className="text-[10px] leading-relaxed text-slate-500">O botão “Mais aplicativos” abre as opções de compartilhamento disponíveis no aparelho. A disponibilidade de cada app depende do que está instalado.</p>
+              </div>
+            </div>
+          )}
 
           {/* 4 Atalhos rápidos */}
           <div className="grid grid-cols-4 gap-2">
