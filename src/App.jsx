@@ -2035,7 +2035,6 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   const daysRemaining = Math.max(0, Number(inv.days || 0) - elapsed);
                   const progressPct = Math.min(100, Math.max(0, Math.round((elapsed / Math.max(1, Number(inv.days || 1))) * 100)));
                   const totalExpected = Number(inv.projectedTotal || (inv.dailyReturn * inv.days));
-                  const nextMidnight = firstCreditAt > checkinClock ? firstCreditAt : (Math.floor((checkinClock - firstCreditAt) / 86400000) + 1) * 86400000 + firstCreditAt;
                   return (
                     <div
                       key={inv.instanceId}
