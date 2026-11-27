@@ -50,7 +50,7 @@ exports.activateInvestment = onCall({ region: 'southamerica-east1' }, async (req
     days: plan.days,
     startAt: now,
     firstCreditAt,
-    endAt: firstCreditAt + (plan.days - 1) * DAY_MS,
+    endAt: firstCreditAt + plan.days * DAY_MS,
     status: 'active',
     daysCredited: 0,
     paidTotal: 0,
