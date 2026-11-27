@@ -239,12 +239,12 @@ export default function AdminPanel({ firebaseUser }) {
           const hasOpen = Object.entries(reservations).some(([requestId, entry]) =>
             requestId !== selected.id && entry && (entry.status === 'pending' || entry.status === 'approved')
           );
-          // Somente o saldo explicitamente liberado para saque pode ser reservado.
-          // Saldo de depósito não é considerado disponível para retirada.
+          // Saques, inclusive usando depósitos, só podem ser aprovados após ativação de pelo menos um plano.
+          const hasActivatedPlan = Object.values(wallet.investments || {}).some((investment) => investment && investment.instanceId);
           const rewardsBalance = Number(wallet.withdrawableBalance || 0);
           const depositBalance = Number(wallet.depositBalance || 0);
           const totalAvailable = Number((rewardsBalance + depositBalance).toFixed(2));
-          if (hasOpen || totalAvailable < amount) return;
+          if (!hasActivatedPlan || hasOpen || totalAvailable < amount) return;
           // Usa primeiro o saldo de bônus/rendimentos e completa com o saldo de depósitos.
           const rewardsUsed = Math.min(rewardsBalance, amount);
           const depositUsed = Number((amount - rewardsUsed).toFixed(2));
@@ -256,7 +256,7 @@ export default function AdminPanel({ firebaseUser }) {
             withdrawalReservations:{...reservations,[selected.id]:record}
           };
         }, { applyLocally:false });
-        if (!reserveResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) throw new Error('Saldo total insuficiente (depósitos + valores liberados) ou já existe outro saque em análise. O pedido continua pendente.');
+        if (!reserveResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) throw new Error('É necessário ter um plano ativado, saldo total suficiente (depósitos + valores liberados) e nenhum outro saque em análise. O pedido continua pendente.');
       }
       if (selected._type === 'withdrawal' && status === 'rejected' && selected.status === 'approved') {
         const walletRef = ref(database, 'wallets/' + selected.uid);
