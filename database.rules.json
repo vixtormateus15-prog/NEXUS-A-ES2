@@ -130,6 +130,15 @@
           }
         }
       }
+    },
+    "withdrawalRequestsByUser": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'vixtormateus15@gmail.com')",
+        ".write": "auth != null && auth.token.email === 'vixtormateus15@gmail.com'",
+        "$requestId": {
+          ".validate": "newData.hasChildren(['uid','amount','pixKey','status','createdAt'])"
+        }
+      }
     }
   }
 }
