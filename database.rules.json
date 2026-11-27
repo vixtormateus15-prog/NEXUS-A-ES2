@@ -58,6 +58,20 @@
         ".write": false
       }
     },
+    "withdrawalProfiles": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'vixtormateus15@gmail.com')",
+        ".write": "auth != null && auth.uid === $uid && newData.exists() && newData.hasChildren(['uid','cpf','holderName','pixKeyType','pixKey','createdAt']) && newData.child('uid').val() === $uid && (!data.exists() || (newData.child('cpf').val() === data.child('cpf').val() && newData.child('holderName').val() === data.child('holderName').val() && newData.child('createdAt').val() === data.child('createdAt').val()))",
+        "uid": { ".validate": "newData.isString() && newData.val() === $uid" },
+        "cpf": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{11}$/)" },
+        "holderName": { ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 120" },
+        "pixKeyType": { ".validate": "newData.val() === 'CPF' || newData.val() === 'E-mail' || newData.val() === 'Telefone'" },
+        "pixKey": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
+        "createdAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
+        "updatedAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
+        "$other": { ".validate": false }
+      }
+    },
     "withdrawalRequests": {
       ".read": "auth != null && auth.token.email === 'vixtormateus15@gmail.com'",
       "$requestId": {
