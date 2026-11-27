@@ -1648,7 +1648,12 @@ function Dashboard({ firebaseUser, onSignOut }) {
     // ------------------------------------------------------------------------
     if (subPage === 'deposit-records' || subPage === 'withdraw-records') {
       const isDeposit = subPage === 'deposit-records';
-      const list = isDeposit ? depositHistory : withdrawHistory;
+      const list = isDeposit
+        ? [
+            ...depositHistory.map((item) => ({ ...item, _kind: 'Depósito' })),
+            ...withdrawHistory.map((item) => ({ ...item, _kind: 'Saque' }))
+          ].sort((a, b) => Number(b.confirmedAt || b.createdAt || 0) - Number(a.confirmedAt || a.createdAt || 0))
+        : withdrawHistory;
 
       return (
         <div className="space-y-3">
@@ -1666,10 +1671,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
             </div>
             <div>
               <h2 className="text-lg font-extrabold text-slate-900 nexus-title">
-                {isDeposit ? 'Registros de depósito' : 'Registros de retirada'}
+                {isDeposit ? 'Histórico de movimentações' : 'Registros de retirada'}
               </h2>
               <p className="text-xs text-slate-500">
-                {isDeposit ? 'Acompanhe todas as suas recargas via PIX.' : 'Acompanhe suas solicitações de saque.'}
+                {isDeposit ? 'Acompanhe depósitos e saques, com o status atualizado pelo painel.' : 'Acompanhe suas solicitações de saque.'}
               </p>
             </div>
           </div>
@@ -1677,9 +1682,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
           {list.length === 0 ? (
             <div className="bg-white rounded-2xl p-8 text-center border border-slate-200/80">
               <History className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-              <div className="text-sm font-bold text-slate-700">Nenhum registro encontrado</div>
+              <div className="text-sm font-bold text-slate-700">Nenhuma movimentação encontrada</div>
               <p className="text-xs text-slate-500 mt-1">
-                Suas movimentações aparecerão automaticamente aqui.
+                Seus depósitos e saques aparecerão automaticamente aqui.
               </p>
             </div>
           ) : (
@@ -1690,18 +1695,18 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex items-center justify-between"
                 >
                   <div>
-                    <div className="text-xs font-extrabold text-slate-900">#{item.id}</div>
+                    <div className="text-xs font-extrabold text-slate-900">{item._kind || 'Saque'} · #{item.id}</div>
                     <div className="text-[11px] text-slate-500 mt-0.5">{item.date}</div>
-                    {!isDeposit && (
+                    {item._kind === 'Saque' || !isDeposit ? (
                       <>
                         <div className="text-[11px] text-slate-500 mt-0.5">Titular: {item.holderName || '—'}</div>
                         <div className="text-[11px] text-slate-500 mt-0.5">PIX: {item.pixKey}</div>
                       </>
-                    )}
+                    ) : null}
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-extrabold text-blue-900">
-                      {formatBRL(isDeposit ? item.amount : item.amount)}
+                      {formatBRL(item.amount)}
                     </div>
                     <span className="inline-block text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full mt-1">
                       {item.status}
