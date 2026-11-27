@@ -1391,10 +1391,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
           <UserSummaryCard />
 
-          <div className={`rounded-xl border p-3 text-xs leading-relaxed ${activeInvestments.length > 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
-            {activeInvestments.length > 0
-              ? `Plano ativo detectado. Bônus de cadastro e recompensas de check-in podem compor o saldo para saque. Mínimo: R$ 10,00.`
-              : 'Para liberar o saque dos bônus de cadastro e check-ins, é necessário ter pelo menos um plano ativo. O mínimo para saque é R$ 10,00.'}
+          <div className={`rounded-xl border p-3 text-xs leading-relaxed ${Object.keys(walletData.investments || {}).length > 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+            {Object.keys(walletData.investments || {}).length > 0
+              ? `Plano ativado detectado. Todo o saldo sacável, incluindo bônus de cadastro e Check-ins, pode ser solicitado. Mínimo: R$ 10,00.`
+              : 'Para liberar o saque do bônus de cadastro e dos Check-ins, ative pelo menos um plano. O mínimo para saque é R$ 10,00.'}
           </div>
 
           {/* Atalho Chave PIX */}
