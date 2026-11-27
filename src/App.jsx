@@ -457,37 +457,55 @@ function Dashboard({ firebaseUser, onSignOut }) {
   const [withdrawHolderName, setWithdrawHolderName] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [teamSearch, setTeamSearch] = useState('');
+  const [teamMembers, setTeamMembers] = useState([]);
   const [guideStepIndex, setGuideStepIndex] = useState(0);
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
 
-  // Cria e carrega somente o perfil básico vinculado ao UID autenticado.
-  // Saldos, investimentos e pagamentos não são gravados pelo navegador.
+  // Cria o código individual e vincula o novo cadastro ao convite informado.
+  // Os níveis são de participação; não geram comissões sobre depósitos ou rendimentos.
   useEffect(() => {
     if (!database || !firebaseUser?.uid) return undefined;
     let active = true;
-    const profileRef = ref(database, `profiles/${firebaseUser.uid}`);
-    get(profileRef)
-      .then(async (snapshot) => {
-        if (!active) return;
-        if (!snapshot.exists()) {
-          await set(profileRef, {
-            email: firebaseUser.email || '',
-            displayName: firebaseUser.displayName || (firebaseUser.email || '').split('@')[0],
-            createdAt: Date.now()
-          });
-        } else {
-          const profile = snapshot.val() || {};
-          setUser((prev) => ({
-            ...prev,
-            email: profile.email || firebaseUser.email || '',
-            id: profile.displayName || prev.id
-          }));
+    const uid = firebaseUser.uid;
+    const profileRef = ref(database, `profiles/${uid}`);
+    const displayName = firebaseUser.displayName || (firebaseUser.email || '').split('@')[0] || 'Membro Nexus';
+    (async () => {
+      const snapshot = await get(profileRef);
+      const oldProfile = snapshot.exists() ? (snapshot.val() || {}) : {};
+      const inviteCode = oldProfile.inviteCode || `NX${uid.slice(0, 8).toUpperCase()}`;
+      let referrerUid = oldProfile.referrerUid || '';
+      const pendingCode = String(localStorage.getItem('nexus_pending_invite_code') || new URLSearchParams(window.location.search).get('code') || new URLSearchParams(window.location.search).get('ref') || '').trim().toUpperCase();
+      let inviterCode = '';
+      if (!referrerUid && pendingCode && pendingCode !== inviteCode) {
+        const inviterSnapshot = await get(ref(database, `inviteCodes/${pendingCode}`));
+        if (inviterSnapshot.exists()) {
+          const inviter = inviterSnapshot.val() || {};
+          if (inviter.uid && inviter.uid !== uid) { referrerUid = inviter.uid; inviterCode = pendingCode; }
         }
-      })
-      .catch(() => {
-        if (active) showProfileError();
-      });
+      }
+      const profileData = { email: firebaseUser.email || '', displayName: oldProfile.displayName || displayName, createdAt: Number(oldProfile.createdAt || Date.now()), inviteCode, ...(referrerUid ? { referrerUid } : {}) };
+      if (!snapshot.exists()) await set(profileRef, profileData);
+      else await update(profileRef, { email: profileData.email, displayName: profileData.displayName, inviteCode, ...(referrerUid && !oldProfile.referrerUid ? { referrerUid } : {}) });
+      const codeRef = ref(database, `inviteCodes/${inviteCode}`);
+      const codeSnapshot = await get(codeRef);
+      if (!codeSnapshot.exists()) await set(codeRef, { uid, createdAt: Date.now() });
+      if (referrerUid && inviterCode && !oldProfile.referrerUid) {
+        await set(ref(database, `referralsBySponsor/${referrerUid}/${uid}`), { memberUid: uid, sponsorUid: referrerUid, referralCode: inviterCode, displayName, createdAt: Date.now() });
+      }
+      localStorage.removeItem('nexus_pending_invite_code');
+      if (!active) return;
+      setUser((prev) => ({ ...prev, email: profileData.email, id: profileData.displayName || prev.id, inviteCode, referrerUid }));
+    })().catch((error) => { console.error('Falha ao configurar código de convite:', error); if (active) showProfileError(); });
     return () => { active = false; };
+  }, [firebaseUser.uid]);
+
+  // Lista somente os convites diretos do titular autenticado.
+  useEffect(() => {
+    if (!database || !firebaseUser?.uid) return undefined;
+    return onValue(ref(database, `referralsBySponsor/${firebaseUser.uid}`), (snapshot) => {
+      const raw = snapshot.val() || {};
+      setTeamMembers(Object.entries(raw).map(([uid, item]) => ({ uid, ...(item || {}) })).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0)));
+    }, (error) => console.error('Falha ao carregar indicações:', error));
   }, [firebaseUser.uid]);
 
   // Carrega os dados fixos do titular e a chave PIX salva para saques.
@@ -900,8 +918,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
       const requestData = {
         uid: firebaseUser.uid, email: firebaseUser.email || '',
         name: holderName, cpf: cpfDigits, holderName,
-        pixKeyType, pixKey, amount, feeAmount: 0,
-        netAmount: amount,
+        pixKeyType, pixKey, amount,
+        feeAmount: Number((amount * 0.06).toFixed(2)),
+        netAmount: Number((amount * 0.94).toFixed(2)),
         status: 'pending', createdAt: Date.now()
       };
       await update(ref(database), {
@@ -1361,8 +1380,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
     // ------------------------------------------------------------------------
     if (subPage === 'withdraw') {
       const numericWithdraw = parseFloat(withdrawAmount) || 0;
-      const feeValue = 0;
-      const receiveValue = Math.max(0, Number(numericWithdraw.toFixed(2)));
+      const feeValue = Number((Math.max(0, numericWithdraw) * 0.06).toFixed(2));
+      const receiveValue = Math.max(0, Number((numericWithdraw - feeValue).toFixed(2)));
       const availableForDisplay = Number(walletData.withdrawableBalance || 0) + Number(walletData.depositBalance || 0);
 
       return (
@@ -1511,7 +1530,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 </div>
                 <div className="flex items-center justify-between py-1 text-xs">
                   <span className="text-slate-500">Taxa de saque</span>
-                  <span className="font-bold tabular-nums text-emerald-700">{formatBRL(feeValue)}</span>
+                  <span className="font-bold tabular-nums text-amber-700">{formatBRL(feeValue)} (6%)</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-3">
                   <span className="text-xs font-extrabold text-slate-800">Valor líquido</span>
@@ -2441,7 +2460,16 @@ function Dashboard({ firebaseUser, onSignOut }) {
     // TELA 4: EQUIPE
     // ------------------------------------------------------------------------
     if (activeTab === 'equipe') {
-      const inviteLink = `https://nexusacoes.com/register?code=${user.inviteCode}`;
+      const inviteLink = `${window.location.origin}/?code=${encodeURIComponent(user.inviteCode)}`;
+      const directCount = teamMembers.length;
+      const referralTiers = [
+        { icon: '🏅', title: 'Nível 1 · Bronze', target: 1, benefit: 'Selo de membro indicador' },
+        { icon: '🥈', title: 'Nível 2 · Prata', target: 3, benefit: 'Destaque Prata no perfil' },
+        { icon: '🥉', title: 'Nível 3 · Ouro', target: 5, benefit: 'Destaque Ouro no perfil' },
+        { icon: '🔥', title: 'Nível 4 · Elite', target: 6, benefit: 'Selo Elite no perfil' }
+      ];
+      const currentTier = [...referralTiers].reverse().find((tier) => directCount >= tier.target) || null;
+      const nextTier = referralTiers.find((tier) => directCount < tier.target) || null;
       return (
         <div className="space-y-3">
           {/* Cabeçalho Equipe */}
@@ -2452,7 +2480,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <div>
               <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Equipe</h2>
               <p className="text-xs text-slate-500">
-                Nível A é o indicado direto. Nível B é o indicado do indicado.
+                Aqui você acompanha quem entrou diretamente pelo seu código e seu progresso de participação.
               </p>
             </div>
           </div>
@@ -2469,8 +2497,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 {user.inviteCode}
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                Link de convite:{' '}
-                <span className="font-semibold text-blue-800 break-all">{inviteLink}</span>
+                Compartilhe este link. O código será preenchido automaticamente no cadastro.
+                <span className="mt-1 block font-semibold text-blue-800 break-all">{inviteLink}</span>
               </div>
             </div>
 
@@ -2514,66 +2542,27 @@ function Dashboard({ firebaseUser, onSignOut }) {
             ))}
           </div>
 
-          {/* Tabela Comissões da Rede */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-              <Users className="w-4 h-4 text-blue-800" />
-              <span>Comissões da rede</span>
+          {/* Progresso dos níveis de participação */}
+          <div className="rounded-2xl border border-blue-200/80 bg-white p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div><div className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700">SEU PROGRESSO</div><h3 className="mt-1 text-base font-black text-slate-900">Níveis de indicação</h3></div>
+              <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-900">{directCount} convite(s)</span>
             </div>
-
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-100 text-slate-400">
-                  <th className="py-2">Nível</th>
-                  <th className="py-2 text-center">Comissão</th>
-                  <th className="py-2 text-right">Pontos Nexus</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-800">Nível A</td>
-                  <td className="py-2.5 text-center font-extrabold text-blue-800">7%</td>
-                  <td className="py-2.5 text-right font-extrabold text-cyan-700">15%</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 font-bold text-slate-800">Nível B</td>
-                  <td className="py-2.5 text-center font-extrabold text-blue-800">3%</td>
-                  <td className="py-2.5 text-right font-extrabold text-cyan-700">5%</td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* Grid 2x2 contadores da rede */}
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
-                <div className="text-[11px] text-slate-500">Na rede</div>
-                <div className="text-base font-extrabold text-slate-900">0</div>
-                <div className="text-[10px] text-slate-400">0 online agora</div>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
-                <div className="text-[11px] text-slate-500">Comissão</div>
-                <div className="text-base font-extrabold text-slate-900">R$ 0,00</div>
-                <div className="text-[10px] text-slate-400">0,00 pontos Nexus</div>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
-                <div className="text-[11px] text-slate-500">Investido</div>
-                <div className="text-base font-extrabold text-slate-900">R$ 0,00</div>
-                <div className="text-[10px] text-slate-400">0 já investiram</div>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
-                <div className="text-[11px] text-slate-500">Rendimento</div>
-                <div className="text-base font-extrabold text-slate-900">R$ 0,00</div>
-                <div className="text-[10px] text-slate-400">Soma do rendimento da rede</div>
-              </div>
+            <p className="text-xs leading-relaxed text-slate-600">Os níveis são alcançados pela quantidade de pessoas que se cadastram diretamente usando seu código. A tela mostra sua evolução e os selos conquistados.</p>
+            <div className="space-y-2.5">
+              {referralTiers.map((tier, index) => {
+                const unlocked = directCount >= tier.target;
+                const previousTarget = index === 0 ? 0 : referralTiers[index - 1].target;
+                const progress = Math.min(100, Math.max(0, ((directCount - previousTarget) / Math.max(1, tier.target - previousTarget)) * 100));
+                return <div key={tier.title} className={`rounded-xl border p-3 ${unlocked ? 'border-emerald-200 bg-emerald-50/70' : 'border-slate-200 bg-slate-50'}`}>
+                  <div className="flex items-center gap-3"><span className="text-2xl">{tier.icon}</span><div className="min-w-0 flex-1"><div className="text-xs font-black text-slate-900">{tier.title}</div><div className="text-[11px] text-slate-600">{tier.target === 6 ? '6 ou mais convidados diretos' : `A partir de ${tier.target} convidado(s) direto(s)`}</div><div className="text-[10px] font-semibold text-blue-800 mt-0.5">{tier.benefit}</div></div><span className={`text-[10px] font-extrabold rounded-full px-2 py-1 ${unlocked ? 'bg-emerald-100 text-emerald-800' : 'bg-white text-slate-500'}`}>{unlocked ? 'Conquistado' : 'Bloqueado'}</span></div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white"><div className="h-full rounded-full bg-gradient-to-r from-blue-700 to-cyan-400" style={{width:`${unlocked ? 100 : progress}%`}} /></div>
+                </div>;
+              })}
             </div>
-
-            <button
-              onClick={() => handleCopy(inviteLink, 'Link de convite copiado')}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-900 to-indigo-800 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md active:scale-[0.99] transition"
-            >
-              <Share2 className="w-4 h-4" />
-              <span>Convide seus amigos</span>
-            </button>
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-xs leading-relaxed text-indigo-900"><strong>Nível atual:</strong> {currentTier ? `${currentTier.icon} ${currentTier.title}` : 'Ainda não conquistado'}.{nextTier ? ` Faltam ${Math.max(0, nextTier.target - directCount)} convite(s) direto(s) para ${nextTier.title}.` : ' Você alcançou o nível máximo.'}</div>
+            <p className="text-[10px] leading-relaxed text-slate-500">Os níveis são indicadores de participação e não geram créditos automáticos, comissões sobre depósitos ou rendimentos de investimentos.</p>
+            <button onClick={() => handleCopy(inviteLink, 'Link de convite copiado')} className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-900 to-indigo-800 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md active:scale-[0.99] transition"><Share2 className="w-4 h-4" /><span>Convide seus amigos</span></button>
           </div>
 
           {/* Busca e Filtros da Árvore da Rede */}
@@ -2614,11 +2603,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
             <div className="pt-2 border-t border-slate-100">
               <div className="text-xs font-extrabold text-slate-800">Árvore da rede</div>
-              <p className="text-xs text-slate-500 mt-1">
-                {teamSearch
-                  ? `Nenhum membro encontrado para "${teamSearch}".`
-                  : 'Ninguém entrou na sua rede ainda. Compartilhe seu link acima!'}
-              </p>
+              <div className="mt-2 space-y-2">
+                {teamMembers.filter((member) => !teamSearch || String(member.displayName || member.memberUid || '').toLowerCase().includes(teamSearch.toLowerCase())).map((member) => <div key={member.uid} className="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3"><div className="min-w-0"><div className="truncate text-xs font-extrabold text-slate-800">{member.displayName || 'Novo membro'}</div><div className="truncate text-[10px] text-slate-500">UID: {member.uid}</div></div><span className="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-800">Direto</span></div>)}
+                {teamMembers.filter((member) => !teamSearch || String(member.displayName || member.memberUid || '').toLowerCase().includes(teamSearch.toLowerCase())).length === 0 ? <p className="text-xs text-slate-500">{teamSearch ? `Nenhum membro encontrado para "${teamSearch}".` : 'Ninguém entrou pelo seu código ainda. Compartilhe o link acima!'}</p> : null}
+              </div>
             </div>
           </div>
         </div>
