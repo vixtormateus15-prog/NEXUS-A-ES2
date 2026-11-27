@@ -24,7 +24,7 @@
     "wallets": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'vixtormateus15@gmail.com')",
-        ".write": "auth != null && auth.uid === $uid && newData.exists() && newData.child('withdrawableBalance').isNumber() && newData.child('withdrawableBalance').val() === (data.exists() && data.child('withdrawableBalance').isNumber() ? data.child('withdrawableBalance').val() : 0) + 1 && newData.child('checkinCount').isNumber() && newData.child('checkinCount').val() === (data.exists() && data.child('checkinCount').isNumber() ? data.child('checkinCount').val() : 0) + 1 && newData.child('lastCheckinAt').isNumber() && newData.child('lastCheckinAt').val() <= now && newData.child('lastCheckinAt').val() >= now - 60000 && (!data.exists() || !data.child('lastCheckinAt').exists() || data.child('lastCheckinAt').val() < now - ((now - 10800000) % 86400000))",
+        ".write": "auth != null && (auth.token.email === 'vixtormateus15@gmail.com' || (auth.uid === $uid && newData.exists() && newData.child('withdrawableBalance').isNumber() && newData.child('withdrawableBalance').val() === (data.exists() && data.child('withdrawableBalance').isNumber() ? data.child('withdrawableBalance').val() : 0) + 1 && newData.child('checkinCount').isNumber() && newData.child('checkinCount').val() === (data.exists() && data.child('checkinCount').isNumber() ? data.child('checkinCount').val() : 0) + 1 && newData.child('lastCheckinAt').isNumber() && newData.child('lastCheckinAt').val() <= now && newData.child('lastCheckinAt').val() >= now - 60000 && (!data.exists() || !data.child('lastCheckinAt').exists() || data.child('lastCheckinAt').val() < now - ((now - 10800000) % 86400000))))",
         "withdrawableBalance": {
           ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000000"
         },
@@ -34,11 +34,23 @@
         "lastCheckinAt": {
           ".validate": "newData.isNumber() && newData.val() <= now && newData.val() >= now - 60000"
         },
+        "depositBalance": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000000"
+        },
+        "depositCredits": {
+          ".validate": "newData.hasChildren()"
+        },
         "$other": {
           ".validate": false
         }
       },
       ".read": "auth != null && auth.token.email === 'vixtormateus15@gmail.com'"
+    },
+    "depositHistory": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'vixtormateus15@gmail.com')",
+        ".write": "auth != null && auth.token.email === 'vixtormateus15@gmail.com'"
+      }
     },
     "transactions": {
       "$uid": {
