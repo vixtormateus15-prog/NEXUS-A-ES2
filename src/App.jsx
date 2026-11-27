@@ -530,9 +530,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
     return onValue(ref(database, 'withdrawalRequestsByUser/' + firebaseUser.uid), (snapshot) => {
       const raw = snapshot.val() || {};
       const history = Object.entries(raw).map(([id, item]) => ({
-        id, amount: Number(item?.amount || 0), net: Number(item?.netAmount || 0),
-        pixKey: item?.pixKey || '',
-        status: ({ pending: 'Pendente', approved: 'Aprovado', paid: 'Pago', rejected: 'Recusado' }[item?.status] || item?.status || 'Pendente'),
+        id, amount: Number(item?.amount || 0), net: Number(item?.netAmount ?? item?.amount ?? 0),
+        pixKey: item?.pixKey || '', holderName: item?.holderName || item?.name || '',
+        status: ({ pending: 'Em processamento', approved: 'Aprovado', paid: 'Pago', rejected: 'Recusado' }[item?.status] || item?.status || 'Em processamento'),
         createdAt: Number(item?.createdAt || 0),
         date: item?.createdAt ? new Date(Number(item.createdAt)).toLocaleString('pt-BR') : '—'
       })).sort((a,b)=>b.createdAt-a.createdAt);
@@ -832,8 +832,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
   // O cliente registra uma solicitação; o painel confere e reserva o saldo ao aprovar.
   const handleRequestWithdraw = async () => {
     if (withdrawalBusy) return;
-    if (activeInvestments.length === 0) {
-      showToast('É necessário ter um plano ativo para solicitar saque.', 'warning');
+    if (Object.keys(walletData.investments || {}).length === 0) {
+      showToast('Ative pelo menos um plano antes de solicitar saque.', 'warning');
       return;
     }
     const val = Number(String(withdrawAmount).replace(',', '.'));
@@ -856,16 +856,18 @@ function Dashboard({ firebaseUser, onSignOut }) {
     try {
       const requestId = `${firebaseUser.uid.slice(0, 8)}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
       const amount = Number(val.toFixed(2));
-      const feeAmount = Number((amount * 0.05).toFixed(2));
       const requestData = {
         uid: firebaseUser.uid, email: firebaseUser.email || '',
         name: withdrawHolderName.trim(), cpf: cpfDigits, holderName: withdrawHolderName.trim(),
-        pixKeyType: tempPixType, pixKey, amount, feeAmount,
-        netAmount: Number((amount - feeAmount).toFixed(2)),
+        pixKeyType: tempPixType, pixKey, amount, feeAmount: 0,
+        netAmount: amount,
         status: 'pending', createdAt: Date.now()
       };
-      await set(ref(database, 'withdrawalRequests/' + requestId), requestData);
-      showToast('Solicitação enviada. O saldo só será reservado quando você aprovar no painel.', 'success');
+      await update(ref(database), {
+        ['withdrawalRequests/' + requestId]: requestData,
+        ['withdrawalRequestsByUser/' + firebaseUser.uid + '/' + requestId]: requestData
+      });
+      showToast('Solicitação enviada e em processamento. Acompanhe o status no histórico de saques.', 'success');
       setWithdrawAmount('');
     } catch (error) {
       showToast('Não foi possível enviar sua solicitação: ' + (error?.message || 'verifique sua conexão.'), 'error');
@@ -1364,8 +1366,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
     // ------------------------------------------------------------------------
     if (subPage === 'withdraw') {
       const numericWithdraw = parseFloat(withdrawAmount) || 0;
-      const feeValue = Number((numericWithdraw * 0.05).toFixed(2));
-      const receiveValue = Math.max(0, Number((numericWithdraw - feeValue).toFixed(2)));
+      const feeValue = 0;
+      const receiveValue = Math.max(0, Number(numericWithdraw.toFixed(2)));
 
       return (
         <div className="space-y-3">
@@ -1476,8 +1478,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 <span className="font-bold text-slate-900">{formatBRL(numericWithdraw)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Taxa de 5%</span>
-                <span className="font-bold text-rose-600">- {formatBRL(feeValue)}</span>
+                <span className="text-slate-500">Taxa de saque</span>
+                <span className="font-bold text-emerald-700">{formatBRL(feeValue)}</span>
               </div>
               <div className="flex justify-between text-sm pt-1 border-t border-slate-100">
                 <span className="font-extrabold text-slate-900">Você recebe</span>
@@ -1691,12 +1693,15 @@ function Dashboard({ firebaseUser, onSignOut }) {
                     <div className="text-xs font-extrabold text-slate-900">#{item.id}</div>
                     <div className="text-[11px] text-slate-500 mt-0.5">{item.date}</div>
                     {!isDeposit && (
-                      <div className="text-[11px] text-slate-500 mt-0.5">{item.pixKey}</div>
+                      <>
+                        <div className="text-[11px] text-slate-500 mt-0.5">Titular: {item.holderName || '—'}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">PIX: {item.pixKey}</div>
+                      </>
                     )}
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-extrabold text-blue-900">
-                      {formatBRL(isDeposit ? item.amount : item.net)}
+                      {formatBRL(isDeposit ? item.amount : item.amount)}
                     </div>
                     <span className="inline-block text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full mt-1">
                       {item.status}
