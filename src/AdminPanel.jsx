@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { onValue, ref, update } from 'firebase/database';
+import { onValue, ref, runTransaction, update } from 'firebase/database';
 import { signOut } from 'firebase/auth';
 import { auth, database } from './firebase';
 import {
@@ -86,6 +86,31 @@ export default function AdminPanel({ firebaseUser }) {
     setBusy(true); setNotice('');
     try {
       const path=(selected._type==='deposit'?'depositRequests/':'withdrawalRequests/')+selected.id;
+      if (selected._type === 'deposit' && status === 'paid') {
+        const walletRef = ref(database, 'wallets/' + selected.uid);
+        const amount = Number(Number(selected.amount || 0).toFixed(2));
+        if (!selected.uid || !Number.isFinite(amount) || amount <= 0) throw new Error('Pedido sem usuário ou valor válido.');
+        await runTransaction(walletRef, (current) => {
+          const wallet = current || {};
+          const credits = wallet.depositCredits || {};
+          if (credits[selected.id]) return wallet;
+          return {
+            ...wallet,
+            depositBalance: Number((Number(wallet.depositBalance || 0) + amount).toFixed(2)),
+            depositCredits: {
+              ...credits,
+              [selected.id]: { amount, creditedAt: Date.now(), transactionId: txId.trim() }
+            }
+          };
+        }, { applyLocally: false });
+        await update(ref(database, 'depositHistory/' + selected.uid + '/' + selected.id), {
+          amount,
+          status: 'paid',
+          confirmedAt: Date.now(),
+          transactionId: txId.trim(),
+          requestId: selected.id
+        });
+      }
       await update(ref(database,path),{
         status,
         pixCopyPaste:pixCode.trim(),
@@ -95,7 +120,7 @@ export default function AdminPanel({ firebaseUser }) {
         updatedBy:firebaseUser.uid
       });
       setSelected(null);
-      setNotice('Registro atualizado no Firebase. A confirmação de pagamento deve ocorrer somente após conferir o extrato bancário.');
+      setNotice(status === 'paid' && selected._type === 'deposit' ? 'Depósito confirmado e crédito registrado na carteira do cliente.' : 'Registro atualizado no Firebase. Confira o extrato bancário antes de confirmar pagamentos.');
     } catch(e) { setNotice('Não foi possível salvar: '+(e?.message || 'verifique as permissões do Firebase.')); }
     finally { setBusy(false); }
   };
