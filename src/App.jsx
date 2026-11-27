@@ -480,6 +480,18 @@ function Dashboard({ firebaseUser, onSignOut }) {
     return () => { active = false; };
   }, [firebaseUser.uid]);
 
+  // Recebe em tempo real o código PIX que o administrador disponibilizar no painel.
+  useEffect(() => {
+    if (!database || !pixModalData?.requestId) return undefined;
+    return onValue(ref(database, 'depositRequests/' + pixModalData.requestId), (snapshot) => {
+      if (!snapshot.exists()) return;
+      const request = snapshot.val() || {};
+      setPixModalData((current) => current?.requestId === pixModalData.requestId
+        ? { ...current, code: request.pixCopyPaste || '', status: request.status || 'pending' }
+        : current);
+    });
+  }, [pixModalData?.requestId]);
+
   // Mantém a carteira sincronizada em tempo real com os créditos do servidor.
   useEffect(() => {
     if (!database || !firebaseUser?.uid) return undefined;
@@ -685,24 +697,38 @@ function Dashboard({ firebaseUser, onSignOut }) {
     }
   };
 
-  // Gerar PIX para depósito
-  const handleGeneratePix = () => {
-    showToast('PIX ainda não está integrado a um provedor. Nenhum código de pagamento foi gerado.', 'warning');
-    return;
-    const val = parseFloat(depositAmount);
-    if (isNaN(val) || val < 50 || val > 5000) {
-      showToast('Informe um valor válido entre R$ 35,00 e R$ 5.000,00.', 'error');
+  // Solicita um PIX: o administrador cola o código verdadeiro gerado no banco.
+  const handleGeneratePix = async () => {
+    const val = Number(String(depositAmount).replace(',', '.'));
+    if (!Number.isFinite(val) || val < 35 || val > 5000) {
+      showToast('Informe um valor entre R$ 35,00 e R$ 5.000,00.', 'error');
       return;
     }
-
-    const fakePixPayload = `00020126580014BR.GOV.BCB.PIX0136nexus-acoes-pagamentos-${Date.now()}5204000053039865406${val.toFixed(2)}5802BR5915NEXUS ACOES LTD6009SAO PAULO62070503***6304E2A1`;
-    setPixModalData({ amount: val, code: fakePixPayload });
+    if (!database || !firebaseUser?.uid) {
+      showToast('Não foi possível conectar ao sistema de depósitos.', 'error');
+      return;
+    }
+    try {
+      const requestId = firebaseUser.uid + '_' + Date.now();
+      await set(ref(database, 'depositRequests/' + requestId), {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        name: user.id || '',
+        amount: Number(val.toFixed(2)),
+        status: 'pending',
+        createdAt: Date.now()
+      });
+      setPixModalData({ amount: val, requestId, code: '' });
+      showToast('Pedido enviado. Aguarde o código PIX ser disponibilizado.', 'success');
+    } catch (error) {
+      showToast('Não foi possível criar o pedido de depósito. Tente novamente.', 'error');
+    }
   };
 
-  // Simular confirmação do pagamento PIX
+  // O cliente apenas fecha o modal; não pode simular confirmação de pagamento.
   const handleConfirmPixSimulation = () => {
     setPixModalData(null);
-    showToast('Confirmação simulada desativada. Depósitos só serão reconhecidos após confirmação do provedor no servidor.', 'warning');
+    showToast('Aguarde a confirmação do depósito após a conferência bancária.', 'info');
     return;
     if (!pixModalData) return;
     const val = pixModalData.amount;
@@ -2809,27 +2835,30 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   {formatBRL(pixModalData.amount)}
                 </div>
 
-                {/* QR Code Estilizado */}
-                <div className="w-40 h-40 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs my-2 flex items-center justify-center">
-                  <QrCode className="w-32 h-32 text-slate-900" />
+                <div className="w-full rounded-xl border border-blue-100 bg-blue-50 p-3 text-center text-xs text-blue-900">
+                  {pixModalData.code
+                    ? 'Código PIX disponibilizado. Copie e pague no aplicativo do seu banco.'
+                    : 'Pedido enviado à administração. O código PIX aparecerá aqui assim que for inserido no painel.'}
                 </div>
-
                 <div className="w-full mt-2">
                   <div className="text-[10px] font-bold text-slate-500 mb-1">Código PIX Copia e Cola</div>
                   <div className="flex items-center gap-1.5">
                     <input
                       type="text"
                       readOnly
-                      value={pixModalData.code}
+                      value={pixModalData.code || 'Aguardando código PIX...'}
                       className="w-full text-[11px] bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-slate-600 truncate"
                     />
                     <button
+                      disabled={!pixModalData.code}
                       onClick={() => handleCopy(pixModalData.code, 'Código PIX copiado')}
-                      className="px-3 py-2 rounded-lg bg-blue-900 text-white text-xs font-bold shrink-0"
+                      className="px-3 py-2 rounded-lg bg-blue-900 text-white text-xs font-bold shrink-0 disabled:opacity-40"
                     >
                       Copiar
                     </button>
                   </div>
+                  {pixModalData.status === 'paid' ? <p className="mt-3 text-xs font-bold text-emerald-700">Depósito confirmado pela administração.</p> : null}
+                  {pixModalData.status === 'rejected' ? <p className="mt-3 text-xs font-bold text-rose-700">Pedido de depósito recusado. Entre em contato com o suporte.</p> : null}
                 </div>
               </div>
 
@@ -2838,7 +2867,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-extrabold text-xs shadow-md hover:opacity-95 transition flex items-center justify-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Simular Pagamento Confirmado</span>
+                <span>Fechar / acompanhar pedido</span>
               </button>
             </div>
           </div>
