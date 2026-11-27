@@ -178,6 +178,7 @@ export default function AdminPanel({ firebaseUser }) {
     try {
       const path = 'investmentRequests/' + item.id;
       let investmentId = item.investmentId || '';
+      let publicActivationEvent = null;
       if (status === 'approved') {
         const catalog = {
           'nexus-start': { name:'NEXUS START', price:35, dailyReturn:4.50, days:23, limit:1 },
@@ -242,11 +243,21 @@ export default function AdminPanel({ firebaseUser }) {
           const bought = Object.values(savedWallet.investments || {}).filter((inv) => inv?.planId === item.planId).length;
           throw new Error(bought >= plan.limit ? 'Limite deste plano já atingido.' : 'Saldo de depósito insuficiente para aprovar este pedido.');
         }
+        const activatedInvestment = savedWallet.investments[investmentId];
+        if (plan.price >= 35 && plan.price <= 1000) {
+          publicActivationEvent = {
+            maskedId: 'ID ***' + String(item.uid).slice(-4),
+            planName: plan.name,
+            price: plan.price,
+            activatedAt: Number(activatedInvestment.startAt || now)
+          };
+        }
       }
       const changes = {...item, status, investmentId: investmentId || null, updatedAt:Date.now(), updatedBy:firebaseUser.uid};
       await update(ref(database), {
         [path]:changes,
-        ['investmentRequestsByUser/' + item.uid + '/' + item.id]:changes
+        ['investmentRequestsByUser/' + item.uid + '/' + item.id]:changes,
+        ...(publicActivationEvent ? { ['publicActivationFeed/' + item.id]: publicActivationEvent } : {})
       });
       setNotice(status === 'approved' ? 'Plano ativado. O valor foi debitado da carteira e o ciclo começa à próxima meia-noite de Brasília.' : 'Pedido de ativação recusado.');
     } catch (error) {
