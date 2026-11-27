@@ -2730,7 +2730,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 active:bg-slate-100 transition text-left"
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 text-blue-800" />
+                    <span className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-blue-500/30 to-cyan-300/15 border border-cyan-200/20 flex items-center justify-center text-cyan-200 group-hover:from-cyan-300 group-hover:to-blue-400 group-hover:text-slate-950 transition-colors"><Icon className="w-5 h-5" /></span>
                     <span className="text-xs font-bold text-slate-800">{item.label}</span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -2910,16 +2910,16 @@ function Dashboard({ firebaseUser, onSignOut }) {
             DRAWER LATERAL (MENU HAMBÚRGUER)
            ==================================================================== */}
         {drawerOpen && (
-          <div className="fixed inset-0 z-50 flex justify-center bg-slate-950/60 backdrop-blur-xs">
-            <div className="w-full max-w-md flex">
-              <div className="w-72 bg-white h-full shadow-2xl p-5 flex flex-col justify-between animate-slideRight">
+          <div className="fixed inset-0 z-50 flex justify-start bg-slate-950/65 backdrop-blur-sm">
+            <div className="w-full max-w-sm flex">
+              <div className="w-[min(86vw,340px)] bg-gradient-to-b from-slate-950 via-blue-950 to-slate-900 h-full shadow-2xl p-5 flex flex-col justify-between animate-slideRight border-r border-cyan-300/20">
                 <div>
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center justify-between pb-5 border-b border-white/10">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center text-amber-300">
                         <TrendingUp className="w-4 h-4" />
                       </div>
-                      <span className="font-black text-base text-slate-900">NEXUS AÇÕES</span>
+                      <span className="font-black text-base tracking-wide text-white">NEXUS AÇÕES</span>
                     </div>
                     <button
                       onClick={() => setDrawerOpen(false)}
@@ -2929,7 +2929,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                     </button>
                   </div>
 
-                  <div className="mt-4 space-y-1">
+                  <div className="mt-5 space-y-2">
                     {[
                       { label: 'Tela Inicial', icon: Home, action: () => navigateToTab('inicio') },
                       { label: 'Planos de Ações', icon: TrendingUp, action: () => navigateToTab('investir') },
@@ -2945,20 +2945,20 @@ function Dashboard({ firebaseUser, onSignOut }) {
                         <button
                           key={item.label}
                           onClick={item.action}
-                          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-900 transition"
+                          className="group w-full min-h-[58px] flex items-center gap-3 px-3.5 py-3 rounded-2xl text-sm font-extrabold text-slate-100 bg-white/[0.06] border border-white/10 hover:bg-cyan-300/10 hover:border-cyan-300/40 hover:text-white active:scale-[0.98] transition-all shadow-lg shadow-slate-950/10"
                         >
                           <Icon className="w-4 h-4 text-blue-800" />
-                          <span>{item.label}</span>
+                          <span className="flex-1 text-left">{item.label}</span><ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-200" />
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-400">
+                <div className="pt-4 border-t border-white/10 text-[11px] text-slate-400">
                   <div>ID: {user.id} • UID: {user.uid}</div>
                   <div className="mt-0.5">NEXUS AÇÕES © 2026</div>
-                  <button onClick={onSignOut} className="mt-3 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Sair da conta</button>
+                  <button onClick={onSignOut} className="mt-3 w-full rounded-xl border border-rose-300/20 bg-rose-500/10 px-4 py-3 text-xs font-extrabold text-rose-200 hover:bg-rose-500/20">Sair da conta</button>
                 </div>
               </div>
               <div className="flex-1" onClick={() => setDrawerOpen(false)} />
