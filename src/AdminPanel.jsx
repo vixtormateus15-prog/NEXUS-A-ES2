@@ -12,7 +12,7 @@ import {
 const ADMIN_EMAIL = 'vixtormateus15@gmail.com';
 const money = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const date = (v) => v ? new Date(Number(v)).toLocaleString('pt-BR') : '—';
-const statusLabel = (s) => ({ pending:'Pendente', awaiting_payment:'Aguardando pagamento', paid:'Pago', approved:'Aprovado', rejected:'Recusado', cancelled:'Cancelado' }[s] || s || 'Pendente');
+const statusLabel = (s) => ({ pending:'Pendente', awaiting_payment:'PIX enviado · cliente pode pagar', paid:'Pago', approved:'Aprovado', rejected:'Recusado', cancelled:'Cancelado' }[s] || s || 'Pendente');
 const statusClass = (s) => s === 'paid' || s === 'approved' ? 'text-emerald-300 bg-emerald-400/10' : s === 'rejected' || s === 'cancelled' ? 'text-rose-300 bg-rose-400/10' : 'text-amber-200 bg-amber-400/10';
 
 const NAV = [
@@ -138,7 +138,7 @@ export default function AdminPanel({ firebaseUser }) {
         await update(ref(database,path), changes);
       }
       setSelected(null);
-      setNotice(status === 'paid' && selected._type === 'deposit' ? 'Depósito confirmado e crédito registrado na carteira do cliente.' : 'Registro atualizado no Firebase. Confira o extrato bancário antes de confirmar pagamentos.');
+      setNotice(selected._type === 'deposit' && status === 'awaiting_payment' ? 'PIX enviado ao cliente! O código foi salvo no Firebase e já está disponível na conta dele. A tela do cliente recebe a atualização em tempo real.' : status === 'paid' && selected._type === 'deposit' ? 'Depósito confirmado e crédito registrado na carteira do cliente.' : 'Registro atualizado no Firebase. Confira o extrato bancário antes de confirmar pagamentos.');
     } catch(e) { setNotice('Não foi possível salvar: '+(e?.message || 'verifique as permissões do Firebase.')); }
     finally { setBusy(false); }
   };
@@ -162,7 +162,7 @@ export default function AdminPanel({ firebaseUser }) {
     </section>
     <section className="rounded-2xl border border-white/10 bg-slate-900/80 p-4 sm:p-5">{!selected||selected._type!==type?<div className="grid min-h-80 place-items-center text-center text-slate-300"><div><UserRound className="mx-auto mb-3" size={36}/><p>Selecione um pedido para consultar os detalhes e administrar.</p></div></div>:<div className="space-y-4">
       <div><p className="text-[10px] font-black tracking-[.2em] text-cyan-300">DETALHES DO PEDIDO</p><h3 className="mt-1 text-2xl font-black">{money(selected.amount)}</h3><p className="break-all text-xs text-slate-300">{selected.id}</p></div>
-      <div className="grid grid-cols-2 gap-2 text-sm"><div className="rounded-xl bg-slate-950 p-3"><p className="text-[10px] text-slate-300">Cliente</p><p className="mt-1 break-all">{selected.name||'—'}</p></div><div className="rounded-xl bg-slate-950 p-3"><p className="text-[10px] text-slate-300">Status</p><p className="mt-1">{statusLabel(selected.status)}</p></div><div className="col-span-2 rounded-xl bg-slate-950 p-3"><p className="text-[10px] text-slate-300">E-mail / UID</p><p className="mt-1 break-all">{selected.email||'—'} / {selected.uid||'—'}</p></div>
+      <div className="grid grid-cols-2 gap-2 text-sm"><div className="rounded-xl bg-slate-950 p-3"><p className="text-[10px] text-slate-300">Cliente</p><p className="mt-1 break-all">{selected.name||'—'}</p></div><div className="rounded-xl bg-slate-950 p-3"><p className="text-[10px] text-slate-300">Status</p><p className="mt-1">{statusLabel(selected.status)}</p>{type==='deposit' && selected.status==='awaiting_payment' && (selected.pixCopyPaste||selected.pixCode)?<p className="mt-2 text-xs font-bold text-emerald-300">✓ Código PIX enviado e disponível para o cliente em tempo real</p>:null}</div><div className="col-span-2 rounded-xl bg-slate-950 p-3"><p className="text-[10px] text-slate-300">E-mail / UID</p><p className="mt-1 break-all">{selected.email||'—'} / {selected.uid||'—'}</p></div>
       {type==='withdrawal'?<div className="col-span-2 rounded-xl bg-slate-950 p-3"><p className="text-[10px] text-slate-300">Chave PIX ({selected.pixKeyType||'tipo não informado'})</p><p className="mt-1 break-all font-semibold">{selected.pixKey||'Não informada'}</p></div>:null}
       <div className="col-span-2 rounded-xl bg-slate-950 p-3"><p className="text-[10px] text-slate-300">Criado em</p><p className="mt-1">{date(selected.createdAt)}</p></div></div>
       {type==='deposit'?<div><label className="block text-xs font-bold text-slate-300">Cole somente o código PIX Copia e Cola<textarea value={pixCode} onChange={e=>setPixCode(e.target.value)} rows={4} className="mt-1 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-sm text-white placeholder:text-slate-200 outline-none focus:border-cyan-400" placeholder="Cole aqui o código PIX Copia e Cola gerado no seu banco"/></label><p className="mt-2 rounded-lg border border-cyan-400/20 bg-cyan-400/5 p-3 text-xs leading-relaxed text-cyan-100">Não precisa enviar imagem nem QR Code. Basta colar o código PIX aqui e tocar em “Enviar PIX ao cliente”. O QR Code será gerado automaticamente na tela do cliente a partir desse código.</p></div>:null}
