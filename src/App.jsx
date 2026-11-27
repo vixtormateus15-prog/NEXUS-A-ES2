@@ -2128,9 +2128,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
                       <p className="mt-1 max-w-[19rem] text-[10px] leading-relaxed text-slate-500">{plan.description}</p>
                       <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias</span>
+                        <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)} · projeção provisória/dia · {plan.days} dias</span>
                         <span className="inline-flex items-center rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-1 text-xs font-extrabold text-emerald-800">
-                          +{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% acumulado estimado
+                          +{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% · projeção provisória
                         </span>
                       </div>
                       <div className="text-[11px] font-bold text-blue-700 mt-0.5">{plan.tag}</div>
