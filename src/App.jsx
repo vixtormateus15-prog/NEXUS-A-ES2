@@ -3325,29 +3325,32 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
 // Autenticação real: o painel só é exibido após sessão Firebase válida.
 export default function App() {
-  // Mede visitas ao site com identificador aleatório local, sem coletar nome, e-mail ou IP.
+  // Mede visitas sem depender de localStorage/sessionStorage estarem habilitados.
   useEffect(() => {
     if (!database) return;
-    try {
-      if (sessionStorage.getItem('nexus_access_recorded')) return;
-      let visitorId = localStorage.getItem('nexus_visitor_id');
-      const isReturning = Boolean(visitorId);
-      if (!visitorId) {
-        visitorId = window.crypto?.randomUUID?.() || ('v_' + Date.now().toString(36) + Math.random().toString(36).slice(2));
-        localStorage.setItem('nexus_visitor_id', visitorId);
-      }
-      const eventRef = push(ref(database, 'siteAccessEvents'));
-      set(eventRef, {
-        visitorId,
-        visitType: isReturning ? 'returning' : 'new',
-        path: window.location.pathname || '/',
-        referrer: document.referrer ? (() => { try { return new URL(document.referrer).hostname; } catch { return ''; } })() : '',
-        createdAt: Date.now()
-      }).then(() => sessionStorage.setItem('nexus_access_recorded', '1'))
-        .catch((error) => console.warn('Não foi possível registrar a visita:', error));
-    } catch (error) {
-      console.warn('Contagem de visitas indisponível neste navegador:', error);
+    let alreadyRecorded = false;
+    try { alreadyRecorded = window.sessionStorage?.getItem('nexus_access_recorded') === '1'; } catch {}
+    if (alreadyRecorded) return;
+
+    let visitorId = '';
+    try { visitorId = window.localStorage?.getItem('nexus_visitor_id') || ''; } catch {}
+    const isReturning = Boolean(visitorId);
+    if (!visitorId) {
+      visitorId = window.crypto?.randomUUID?.() || ('v_' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+      try { window.localStorage?.setItem('nexus_visitor_id', visitorId); } catch {}
     }
+
+    const eventRef = push(ref(database, 'siteAccessEvents'));
+    const eventData = {
+      visitorId,
+      visitType: isReturning ? 'returning' : 'new',
+      path: window.location.pathname || '/',
+      referrer: document.referrer ? (() => { try { return new URL(document.referrer).hostname; } catch { return ''; } })() : '',
+      createdAt: Date.now()
+    };
+    set(eventRef, eventData)
+      .then(() => { try { window.sessionStorage?.setItem('nexus_access_recorded', '1'); } catch {} })
+      .catch((error) => console.error('NEXUS: falha ao registrar acesso no Firebase:', error));
   }, []);
 
   const [firebaseUser, setFirebaseUser] = useState(null);
