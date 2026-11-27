@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { get, onValue, ref, runTransaction, set, update } from 'firebase/database';
-import { auth, database, firebaseConfigured } from './firebase';
+import { auth, database, firebaseConfigured, functions } from './firebase';
+import { httpsCallable } from 'firebase/functions';
 import AuthScreen from './AuthScreen.jsx';
 import AdminPanel from './AdminPanel.jsx';
 import {
@@ -396,6 +397,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
   // Toast Notification
   const [toast, setToast] = useState(null);
   const [checkinBusy, setCheckinBusy] = useState(false);
+  const [investmentBusy, setInvestmentBusy] = useState(false);
   const [checkinClock, setCheckinClock] = useState(Date.now());
   const [walletData, setWalletData] = useState({ withdrawableBalance: 0, lastCheckinAt: null, checkinCount: 0, signupBonusGranted: false });
   const checkinDayStart = getBrazilDayStart(checkinClock);
@@ -575,6 +577,18 @@ function Dashboard({ firebaseUser, onSignOut }) {
     });
   }, [firebaseUser.uid]);
 
+  // Investimentos são carregados da carteira persistida e só podem ser criados pelo backend.
+  useEffect(() => {
+    const raw = walletData.investments || {};
+    const all = Object.values(raw).filter((item) => item && item.instanceId);
+    const now = checkinClock;
+    const active = all.filter((item) => now < Number(item.firstCreditAt || 0) + Number(item.days || 0) * 86400000);
+    const completed = all.filter((item) => now >= Number(item.firstCreditAt || 0) + Number(item.days || 0) * 86400000);
+    setActiveInvestments(active.sort((a, b) => Number(b.startAt || 0) - Number(a.startAt || 0)));
+    setCompletedInvestments(completed.sort((a, b) => Number(b.startAt || 0) - Number(a.startAt || 0)));
+    setPlans(INITIAL_PLANS.map((plan) => ({ ...plan, bought: all.filter((item) => item.planId === plan.id).length })));
+  }, [walletData.investments, checkinClock]);
+
   const showProfileError = () => {
     setToast({ message: 'Não foi possível carregar seu perfil. Confira as regras do Realtime Database.', type: 'error' });
   };
@@ -610,126 +624,38 @@ function Dashboard({ firebaseUser, onSignOut }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Comprar / Investir em um plano
-  const handleInvestPlan = (plan) => {
-    showToast('Investimentos estão temporariamente bloqueados até existir processamento e validação financeira no servidor.', 'warning');
-    return;
-    if (plan.bought >= plan.limit) {
-      showToast(`Limite de ${plan.limit} compra(s) atingido para este plano.`, 'error');
+  // Ativação financeira executada no servidor; o navegador nunca debita a carteira.
+  const handleInvestPlan = async (plan) => {
+    if (!functions || investmentBusy) {
+      showToast('Serviço de ativação indisponível. Tente novamente mais tarde.', 'error');
       return;
     }
-
-    if (user.depositBalance < plan.price) {
-      showToast('Saldo insuficiente! Faça um depósito via PIX para investir.', 'warning');
+    if (Number(user.depositBalance || 0) < Number(plan.price || 0)) {
+      showToast('Saldo insuficiente. Faça um depósito e aguarde a confirmação no painel.', 'warning');
       setSubPage(null);
       setActiveTab('depositar');
-      setDepositAmount(String(plan.price <= 5000 ? plan.price : 5000));
+      setDepositAmount(String(plan.price));
       return;
     }
-
-    // Debita saldo e cria ativo
-    const now = new Date();
-    const endDate = new Date(now.getTime() + plan.days * 24 * 60 * 60 * 1000);
-
-    const newInvestment = {
-      instanceId: `INV-${Date.now()}`,
-      planId: plan.id,
-      name: plan.name,
-      price: plan.price,
-      dailyReturn: plan.dailyReturn,
-      days: plan.days,
-      startDate: now.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' }),
-      endDate: endDate.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' }),
-      accumulated: 0,
-      daysCollected: 0,
-      boostedToday: false,
-      nextCollectTimer: '23:59:42'
-    };
-
-    setUser((prev) => ({
-      ...prev,
-      depositBalance: Number((prev.depositBalance - plan.price).toFixed(2)),
-      nexusPoints: Number((prev.nexusPoints + 0.40).toFixed(2))
-    }));
-
-    setPlans((prev) =>
-      prev.map((p) => (p.id === plan.id ? { ...p, bought: p.bought + 1 } : p))
-    );
-
-    setActiveInvestments((prev) => [newInvestment, ...prev]);
-
-    // Desbloqueia insígnia de Primeiro Investimento se ainda bloqueada
-    setBadges((prev) =>
-      prev.map((b) => (b.id === 3 && !b.completed ? { ...b, completed: true } : b))
-    );
-
-    setCouponLogs((prev) => [
-      {
-        id: Date.now(),
-        title: `Investimento ${plan.name} + Insígnia`,
-        date: `${now.toLocaleString('pt-BR')} - Pontos Nexus`,
-        amount: '+ 0,40 pontos',
-        balanceAfter: `Saldo: ${(user.nexusPoints + 0.40).toFixed(2)}`
-      },
-      ...prev
-    ]);
-
-    showToast(`Plano ${plan.name} ativado com sucesso!`, 'success');
-    setSubPage(null);
-    setActiveTab('investir');
-    setInvestSubTab('iniciado');
-  };
-
-  // Coletar / Acelerar rendimento de um plano ativo
-  const handleCollectYield = (instanceId) => {
-    showToast('A distribuição de rendimentos ainda não está habilitada. Nenhum saldo foi creditado.', 'warning');
-    return;
-    const target = activeInvestments.find((item) => item.instanceId === instanceId);
-    if (!target) return;
-
-    if (target.boostedToday) {
-      showToast('Rendimento de hoje já coletado! Aguarde o próximo ciclo de 24h.', 'info');
-      return;
+    setInvestmentBusy(true);
+    try {
+      const activate = httpsCallable(functions, 'activateInvestment');
+      const activationKey = `${firebaseUser.uid.slice(0, 8)}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      await activate({ planId: plan.id, activationKey });
+      showToast(`Plano ${plan.name} ativado. O primeiro dia do ciclo começa às 00:00 de Brasília.`, 'success');
+      setSubPage(null);
+      setActiveTab('investir');
+      setInvestSubTab('iniciado');
+    } catch (error) {
+      const messages = {
+        'functions/failed-precondition': error.message || 'Não foi possível ativar o plano.',
+        'functions/unauthenticated': 'Entre novamente na sua conta.',
+        'functions/unavailable': 'O serviço está temporariamente indisponível.'
+      };
+      showToast(messages[error?.code] || error?.message || 'Falha ao ativar o plano.', 'error');
+    } finally {
+      setInvestmentBusy(false);
     }
-
-    const earned = target.dailyReturn;
-    const newDaysCollected = target.daysCollected + 1;
-    const newAccumulated = Number((target.accumulated + earned).toFixed(2));
-    const isFinished = newDaysCollected >= target.days;
-
-    setUser((prev) => ({
-      ...prev,
-      withdrawableBalance: Number((prev.withdrawableBalance + earned).toFixed(2)),
-      nexusPoints: Number((prev.nexusPoints + 0.55).toFixed(2))
-    }));
-
-    if (isFinished) {
-      setActiveInvestments((prev) => prev.filter((item) => item.instanceId !== instanceId));
-      setCompletedInvestments((prev) => [
-        { ...target, accumulated: newAccumulated, daysCollected: newDaysCollected },
-        ...prev
-      ]);
-    } else {
-      setActiveInvestments((prev) =>
-        prev.map((item) =>
-          item.instanceId === instanceId
-            ? {
-                ...item,
-                accumulated: newAccumulated,
-                daysCollected: newDaysCollected,
-                boostedToday: true,
-                nextCollectTimer: '23:59:59'
-              }
-            : item
-        )
-      );
-    }
-
-    setBadges((prev) =>
-      prev.map((b) => (b.id === 4 && !b.completed ? { ...b, completed: true } : b))
-    );
-
-    showToast(`+${formatBRL(earned)} creditado em "Pode ser retirado"!`, 'success');
   };
 
   // O servidor libera um check-in por dia no fuso de Brasília.
@@ -1110,14 +1036,14 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
             <button
               onClick={() => handleInvestPlan(currentPlan)}
-              disabled={isSoldOut}
+              disabled={isSoldOut || investmentBusy}
               className={`w-full mt-4 py-3.5 rounded-xl font-bold text-sm text-white shadow-md transition active:scale-[0.99] ${
                 isSoldOut
                   ? 'bg-slate-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-800 hover:from-blue-800 hover:to-indigo-700'
               }`}
             >
-              {isSoldOut ? 'Limite de cotas atingido' : 'Confirmar e investir agora'}
+              {investmentBusy ? 'Ativando plano...' : isSoldOut ? 'Limite de cotas atingido' : 'Confirmar e investir agora'}
             </button>
           </div>
         </div>
@@ -2021,7 +1947,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <div>
               <h2 className="text-lg font-extrabold text-slate-900 nexus-title">Investir</h2>
               <p className="text-xs text-slate-500">
-                Acompanhe seus investimentos em tempo real.
+                Acompanhe o prazo, a barra de dias e os valores informativos dos seus planos.
               </p>
               <p className="text-[11px] font-bold text-blue-700 mt-0.5">
                 Pontos Nexus disponíveis: {user.nexusPoints.toFixed(2).replace('.', ',')}
@@ -2093,7 +2019,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   <TrendingUp className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                   <div className="text-sm font-bold text-slate-800">Nenhum plano ativo no momento</div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Escolha um plano na aba Investir para começar a receber rendimentos diários.
+                    Escolha um plano para acompanhar seu ciclo, os dias restantes e os valores informativos. Os pagamentos são registrados manualmente pela administração.
                   </p>
                   <button
                     onClick={() => setInvestSubTab('investir')}
@@ -2104,8 +2030,12 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 </div>
               ) : (
                 activeInvestments.map((inv) => {
-                  const progressPct = Math.min(100, Math.max(3, Math.round((inv.daysCollected / inv.days) * 100)));
-                  const totalExpected = inv.dailyReturn * inv.days;
+                  const firstCreditAt = Number(inv.firstCreditAt || 0);
+                  const elapsed = checkinClock < firstCreditAt ? 0 : Math.min(Number(inv.days || 0), Math.floor((checkinClock - firstCreditAt) / 86400000) + 1);
+                  const daysRemaining = Math.max(0, Number(inv.days || 0) - elapsed);
+                  const progressPct = Math.min(100, Math.max(0, Math.round((elapsed / Math.max(1, Number(inv.days || 1))) * 100)));
+                  const totalExpected = Number(inv.projectedTotal || (inv.dailyReturn * inv.days));
+                  const nextMidnight = firstCreditAt > checkinClock ? firstCreditAt : (Math.floor((checkinClock - firstCreditAt) / 86400000) + 1) * 86400000 + firstCreditAt;
                   return (
                     <div
                       key={inv.instanceId}
@@ -2129,24 +2059,24 @@ function Dashboard({ firebaseUser, onSignOut }) {
                       <div className="space-y-1.5 text-xs">
                         <div className="flex justify-between">
                           <span className="text-slate-500">Renda diária:</span>
-                          <span className="font-bold text-slate-900">{formatBRL(inv.dailyReturn)}</span>
+                          <span className="font-bold text-slate-900">{formatBRL(inv.dailyReturn)} (previsto)</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-500">Tempo de início:</span>
-                          <span className="font-semibold text-slate-700">{inv.startDate}</span>
+                          <span className="font-semibold text-slate-700">{new Date(Number(inv.startAt || 0)).toLocaleString('pt-BR')}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-500">Tempo de término:</span>
-                          <span className="font-semibold text-slate-700">{inv.endDate}</span>
+                          <span className="font-semibold text-slate-700">{new Date(firstCreditAt + Number(inv.days || 0) * 86400000).toLocaleString('pt-BR')}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-500">Renda acumulada:</span>
-                          <span className="font-extrabold text-emerald-700">{formatBRL(inv.accumulated)}</span>
+                          <span className="font-extrabold text-emerald-700">{formatBRL(Number(inv.paidTotal || 0))} pago</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-500">Ciclo:</span>
                           <span className="font-bold text-slate-900">
-                            {inv.days} dias · retorno {formatBRL(totalExpected)}
+                            {inv.days} dias · projeção {formatBRL(totalExpected)}
                           </span>
                         </div>
                       </div>
@@ -2154,9 +2084,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
                       {/* Barra de Progresso */}
                       <div>
                         <div className="flex justify-between text-[11px] font-bold text-slate-500 mb-1">
-                          <span>0%</span>
+                          <span>{elapsed}/{inv.days} dias</span>
                           <span className="text-blue-800">{progressPct}%</span>
-                          <span>100%</span>
+                          <span>{daysRemaining} restantes</span>
                         </div>
                         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                           <div
@@ -2165,28 +2095,13 @@ function Dashboard({ firebaseUser, onSignOut }) {
                           />
                         </div>
                         <div className="text-center text-[11px] text-slate-500 mt-1.5">
-                          Próxima coleta em {inv.nextCollectTimer}
+                          {elapsed === 0 ? `Primeiro dia do ciclo: ${new Date(firstCreditAt).toLocaleString('pt-BR')}` : `${daysRemaining} dia(s) restante(s) no ciclo`}
                         </div>
                       </div>
 
-                      {/* Botão Acelerar / Injetar Pontos */}
-                      <button
-                        onClick={() => handleCollectYield(inv.instanceId)}
-                        className={`w-full py-3 rounded-xl font-bold text-xs text-white shadow-sm transition active:scale-[0.99] ${
-                          inv.boostedToday
-                            ? 'bg-slate-400 cursor-default'
-                            : 'bg-gradient-to-r from-blue-900 to-indigo-800 hover:opacity-95'
-                        }`}
-                      >
-                        <div>
-                          {inv.boostedToday
-                            ? 'Rendimento de hoje já injetado'
-                            : 'Acelerar rendimento, injetar Pontos Nexus'}
-                        </div>
-                        <div className="text-[10px] font-normal text-cyan-200 mt-0.5">
-                          Injetável: {user.nexusPoints.toFixed(2)} pontos
-                        </div>
-                      </button>
+                      <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-[11px] leading-relaxed text-blue-900">
+                        Os valores diários e o total do ciclo são apenas informativos. O pagamento é feito manualmente pela administração e só entra no saldo sacável após a confirmação no painel.
+                      </div>
                     </div>
                   );
                 })
@@ -2215,7 +2130,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 mt-1">
-                      Total resgatado: <strong className="text-slate-900">{formatBRL(inv.accumulated)}</strong>
+                      Ciclo concluído. Valores pagos manualmente: <strong className="text-slate-900">{formatBRL(Number(inv.paidTotal || 0))}</strong>
                     </div>
                   </div>
                 ))
