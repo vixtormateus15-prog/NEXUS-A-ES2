@@ -3029,10 +3029,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
                 <div className="mt-4 space-y-2">
                   <button
-                    onClick={() => showToast('Redirecionando para o canal oficial da NEXUS AÇÕES...', 'info')}
-                    className="w-full py-3 rounded-xl bg-blue-50 text-blue-900 border border-blue-200 font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-blue-100 transition"
+                    onClick={() => window.open('https://t.me/+-mN9ZrabaLo5MDIx', '_blank', 'noopener,noreferrer')}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-100 via-cyan-50 to-blue-100 text-blue-950 border border-cyan-300 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-cyan-950/10 hover:brightness-105 transition"
                   >
-                    <span>Grupo no WhatsApp / Telegram</span>
+                    <span>Entrar no grupo oficial do Telegram</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </button>
                   <button
