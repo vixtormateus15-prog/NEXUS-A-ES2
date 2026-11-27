@@ -111,14 +111,22 @@ export default function AdminPanel({ firebaseUser }) {
           requestId: selected.id
         });
       }
-      await update(ref(database,path),{
+      const changes = {
         status,
         pixCopyPaste:pixCode.trim(),
         transactionId:txId.trim(),
         adminNote:note.trim(),
         updatedAt:Date.now(),
         updatedBy:firebaseUser.uid
-      });
+      };
+      if (selected._type === 'deposit') {
+        await update(ref(database), {
+          [path]: changes,
+          ['depositRequestsByUser/' + selected.uid + '/' + selected.id]: changes
+        });
+      } else {
+        await update(ref(database,path), changes);
+      }
       setSelected(null);
       setNotice(status === 'paid' && selected._type === 'deposit' ? 'Depósito confirmado e crédito registrado na carteira do cliente.' : 'Registro atualizado no Firebase. Confira o extrato bancário antes de confirmar pagamentos.');
     } catch(e) { setNotice('Não foi possível salvar: '+(e?.message || 'verifique as permissões do Firebase.')); }
