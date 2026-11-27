@@ -649,7 +649,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
       price: values[Math.floor(Math.random() * values.length)]
     }];
     setProjectedActivationFeed(makeProjectedEvent());
-    const timer = setInterval(() => setProjectedActivationFeed(makeProjectedEvent()), 3000);
+    const timer = setInterval(() => setProjectedActivationFeed(makeProjectedEvent()), 10000);
     return () => clearInterval(timer);
   }, []);
 
