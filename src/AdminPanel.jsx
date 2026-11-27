@@ -238,10 +238,20 @@ export default function AdminPanel({ firebaseUser }) {
           if (reservations[selected.id]) return wallet;
           const hasOpen = Object.values(reservations).some((entry) => entry && (entry.status === 'pending' || entry.status === 'approved'));
           const hasActivatedPlan = Object.values(wallet.investments || {}).some((inv) => inv && inv.instanceId);
-          const balance = Number(wallet.withdrawableBalance || 0);
-          if (hasOpen || !hasActivatedPlan || balance < amount) return;
-          const record = {...selected, status:'approved', reservedAt:Date.now()};
-          return {...wallet, withdrawableBalance:Number((balance - amount).toFixed(2)), withdrawalReservations:{...reservations,[selected.id]:record}};
+          const rewardsBalance = Number(wallet.withdrawableBalance || 0);
+          const depositBalance = Number(wallet.depositBalance || 0);
+          const totalBalance = rewardsBalance + depositBalance;
+          if (hasOpen || !hasActivatedPlan || totalBalance < amount) return;
+          // Reserva primeiro bônus/check-ins/rendimentos e depois o saldo de depósitos.
+          const rewardsUsed = Math.min(rewardsBalance, amount);
+          const depositUsed = Number((amount - rewardsUsed).toFixed(2));
+          const record = {...selected, status:'approved', reservedAt:Date.now(), rewardsReserved:rewardsUsed, depositReserved:depositUsed};
+          return {
+            ...wallet,
+            withdrawableBalance:Number((rewardsBalance - rewardsUsed).toFixed(2)),
+            depositBalance:Number((depositBalance - depositUsed).toFixed(2)),
+            withdrawalReservations:{...reservations,[selected.id]:record}
+          };
         }, { applyLocally:false });
         if (!reserveResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) throw new Error('Saldo insuficiente, nenhum plano ativado foi encontrado ou já existe outro saque em análise. O pedido continua pendente.');
       }
@@ -256,9 +266,10 @@ export default function AdminPanel({ firebaseUser }) {
           if (!reservations[selected.id]) return;
           return {
             ...wallet,
-            withdrawableBalance:Number((Number(wallet.withdrawableBalance || 0) + amount).toFixed(2)),
+            withdrawableBalance:Number((Number(wallet.withdrawableBalance || 0) + Number(reservations[selected.id].rewardsReserved ?? amount)).toFixed(2)),
+            depositBalance:Number((Number(wallet.depositBalance || 0) + Number(reservations[selected.id].depositReserved || 0)).toFixed(2)),
             withdrawalReservations:{...reservations,[selected.id]:{...reservations[selected.id],status:'rejected',updatedAt:Date.now()}},
-            withdrawalRefunds:{...refunds,[selected.id]:{amount,refundedAt:Date.now(),refundedBy:firebaseUser.uid}}
+            withdrawalRefunds:{...refunds,[selected.id]:{amount,rewardsAmount:Number(reservations[selected.id].rewardsReserved ?? amount),depositAmount:Number(reservations[selected.id].depositReserved || 0),refundedAt:Date.now(),refundedBy:firebaseUser.uid}}
           };
         }, { applyLocally:false });
         if (!refundResult.snapshot.child('withdrawalRefunds').child(selected.id).exists()) throw new Error('O estorno não foi confirmado.');
