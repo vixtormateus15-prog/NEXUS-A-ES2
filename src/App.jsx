@@ -1666,18 +1666,24 @@ function Dashboard({ firebaseUser, onSignOut }) {
             <span>Voltar</span>
           </button>
 
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-800">
-              <History className="w-6 h-6" />
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 p-5 shadow-xl border border-blue-300/30">
+            <div className="absolute -right-8 -top-10 h-36 w-36 rounded-full bg-cyan-300/10 blur-2xl" />
+            <div className="relative flex items-center gap-4">
+              <div className="w-14 h-14 shrink-0 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-cyan-200 shadow-inner">
+                <History className="w-7 h-7" />
+              </div>
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200">Movimentações da conta</div>
+                <h2 className="mt-1 text-xl font-black text-white nexus-title">
+                  {isDeposit ? 'Histórico de movimentações' : 'Registros de retirada'}
+                </h2>
+                <p className="mt-1 text-sm leading-snug text-blue-100/90">
+                  {isDeposit ? 'Consulte seus depósitos e saques e acompanhe cada atualização.' : 'Acompanhe suas solicitações de saque.'}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-extrabold text-slate-900 nexus-title">
-                {isDeposit ? 'Histórico de movimentações' : 'Registros de retirada'}
-              </h2>
-              <p className="text-xs text-slate-500">
-                {isDeposit ? 'Acompanhe depósitos e saques, com o status atualizado pelo painel.' : 'Acompanhe suas solicitações de saque.'}
-              </p>
-            </div>
+            <div className="relative mt-4 h-px bg-gradient-to-r from-cyan-300/60 via-white/20 to-transparent" />
+            <p className="relative mt-3 text-[11px] font-semibold tracking-wide text-cyan-100/80">REGISTROS REAIS DA SUA CONTA · STATUS ATUALIZADO</p>
           </div>
 
           {list.length === 0 ? (
@@ -1689,32 +1695,42 @@ function Dashboard({ firebaseUser, onSignOut }) {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {list.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="text-xs font-extrabold text-slate-900">{item._kind || 'Saque'} · #{item.id}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">{item.date}</div>
-                    {item._kind === 'Saque' || !isDeposit ? (
-                      <>
-                        <div className="text-[11px] text-slate-500 mt-0.5">Titular: {item.holderName || '—'}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">PIX: {item.pixKey}</div>
-                      </>
-                    ) : null}
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-extrabold text-blue-900">
-                      {formatBRL(item.amount)}
+            <div className="space-y-3">
+              {list.map((item) => {
+                const successful = ['SAQUE BEM SUCEDIDO', 'Pago', 'Aprovado'].includes(item.status);
+                return (
+                  <div
+                    key={item.id}
+                    className={`relative overflow-hidden rounded-3xl border-2 bg-white p-4 shadow-lg ${successful ? 'border-emerald-200 shadow-emerald-900/10' : 'border-blue-100 shadow-blue-950/5'}`}
+                  >
+                    <div className={`absolute inset-x-0 top-0 h-1.5 ${successful ? 'bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-300' : 'bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-300'}`} />
+                    <div className="flex items-start justify-between gap-3 pt-1">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-lg font-black tracking-tight text-slate-950">{item._kind || 'Saque'}</div>
+                        <div className="mt-1 break-all text-[11px] font-semibold text-slate-400">Comprovante · #{item.id}</div>
+                        <div className="mt-2 text-sm font-medium text-slate-600">{item.date}</div>
+                        {item._kind === 'Saque' || !isDeposit ? (
+                          <div className="mt-3 space-y-1 rounded-xl bg-slate-50 p-3">
+                            <div className="text-sm text-slate-600"><span className="font-bold text-slate-800">Titular:</span> {item.holderName || '—'}</div>
+                            <div className="break-all text-sm text-slate-600"><span className="font-bold text-slate-800">PIX:</span> {item.pixKey}</div>
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Valor</div>
+                        <div className="mt-1 text-2xl font-black tracking-tight text-blue-950">{formatBRL(item.amount)}</div>
+                        <span className={`mt-3 inline-flex max-w-[150px] items-center justify-center rounded-full border px-3 py-1.5 text-center text-[11px] font-black uppercase leading-tight tracking-wide ${successful ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                          {item.status}
+                        </span>
+                      </div>
                     </div>
-                    <span className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full mt-1 ${item.status === 'SAQUE BEM SUCEDIDO' ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
-                      {item.status}
-                    </span>
+                    <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span className={`h-2 w-2 rounded-full ${successful ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+                      Registro de movimentação
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
