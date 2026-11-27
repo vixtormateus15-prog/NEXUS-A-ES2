@@ -134,6 +134,8 @@ export default function AdminPanel({ firebaseUser }) {
 
   const saveRequest=async(status) => {
     if(!selected || busy) return;
+    if(selected._type==='withdrawal' && selected.status==='paid' && status!=='paid') { setNotice('Este saque já foi marcado como pago e não pode ser alterado.'); return; }
+    if(selected._type==='withdrawal' && selected.status==='rejected' && status!=='rejected') { setNotice('Este saque foi recusado e estornado; não é possível aprová-lo novamente.'); return; }
     if(selected._type==='withdrawal' && status==='paid' && !txId.trim()) { setNotice('Informe o identificador da transferência antes de marcar o saque como pago.'); return; }
     if(selected._type==='deposit' && status==='awaiting_payment' && !pixCode.trim()) { setNotice('Cole o código PIX Copia e Cola gerado no seu banco.'); return; }
     setBusy(true); setNotice('');
