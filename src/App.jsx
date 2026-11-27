@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { getIdTokenResult, onAuthStateChanged, signOut } from 'firebase/auth';
 import { get, onValue, ref, runTransaction, set, update } from 'firebase/database';
 import { auth, database, firebaseConfigured } from './firebase';
 import AuthScreen from './AuthScreen.jsx';
@@ -494,6 +494,35 @@ function Dashboard({ firebaseUser, onSignOut }) {
         }
       }
       const profileData = { email: firebaseUser.email || '', displayName: oldProfile.displayName || displayName, createdAt: Number(oldProfile.createdAt || Date.now()), inviteCode, ...(referrerUid ? { referrerUid } : {}) };
+      if (!snapshot.exists()) await set(profileRef, profileData);
+      else await update(profileRef, { email: profileData.email, displayName: profileData.displayName, inviteCode, ...(referrerUid && !oldProfile.referrerUid ? { referrerUid } : {}) });
+
+      // Bônus único de boas-vindas para contas recém-criadas.
+      // A janela curta é confirmada também pelas regras do Realtime Database.
+      try {
+        const now = Date.now();
+        const profileIsNew = now - Number(profileData.createdAt || 0) <= 10 * 60 * 1000;
+        const tokenResult = await getIdTokenResult(firebaseUser);
+        const authTime = Number(tokenResult.claims.auth_time || 0) * 1000;
+        const sessionIsNew = authTime > 0 && now - authTime <= 10 * 60 * 1000;
+        if (profileIsNew && sessionIsNew) {
+          const walletRef = ref(database, `wallets/${uid}`);
+          const bonusResult = await runTransaction(walletRef, (current) => {
+            const wallet = current || {};
+            if (wallet.signupBonusGranted === true) return;
+            return {
+              ...wallet,
+              withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + 3.50).toFixed(2)),
+              signupBonusGranted: true,
+              signupBonusAmount: 3.50,
+              signupBonusAt: Date.now()
+            };
+          }, { applyLocally: false });
+          if (bonusResult.committed) showToast('Bônus de cadastro de R$ 3,50 creditado no seu saldo interno!', 'success');
+        }
+      } catch (bonusError) {
+        console.error('Não foi possível creditar o bônus de cadastro:', bonusError);
+      }
       if (!snapshot.exists()) await set(profileRef, profileData);
       else await update(profileRef, { email: profileData.email, displayName: profileData.displayName, inviteCode, ...(referrerUid && !oldProfile.referrerUid ? { referrerUid } : {}) });
       const codeRef = ref(database, `inviteCodes/${inviteCode}`);
