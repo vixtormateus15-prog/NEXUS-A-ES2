@@ -489,6 +489,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
       setPixModalData((current) => current?.requestId === pixModalData.requestId
         ? { ...current, code: request.pixCopyPaste || '', status: request.status || 'pending' }
         : current);
+    }, (error) => {
+      console.error('Falha ao acompanhar pedido PIX:', error);
+      showToast('Pedido criado, mas não foi possível acompanhar o PIX: ' + (error?.code || error?.message || 'erro de leitura'), 'error');
     });
   }, [pixModalData?.requestId]);
 
@@ -721,7 +724,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
       setPixModalData({ amount: val, requestId, code: '' });
       showToast('Pedido enviado. Aguarde o código PIX ser disponibilizado.', 'success');
     } catch (error) {
-      showToast('Não foi possível criar o pedido de depósito. Tente novamente.', 'error');
+      console.error('Falha ao criar pedido de depósito:', error);
+      showToast('Falha ao criar depósito (' + (error?.code || error?.message || 'erro desconhecido') + '). Verifique sua conexão e as regras do Firebase.', 'error');
     }
   };
 
