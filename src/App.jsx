@@ -405,6 +405,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
   // Toast Notification
   const [toast, setToast] = useState(null);
   const [checkinBusy, setCheckinBusy] = useState(false);
+  const [showSignupGift, setShowSignupGift] = useState(false);
+  const [giftCollecting, setGiftCollecting] = useState(false);
+  const [giftCelebration, setGiftCelebration] = useState(false);
   const [investmentBusy, setInvestmentBusy] = useState(false);
   const [withdrawalBusy, setWithdrawalBusy] = useState(false);
   const [withdrawalProfile, setWithdrawalProfile] = useState(null);
@@ -497,8 +500,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
       if (!snapshot.exists()) await set(profileRef, profileData);
       else await update(profileRef, { email: profileData.email, displayName: profileData.displayName, inviteCode, ...(referrerUid && !oldProfile.referrerUid ? { referrerUid } : {}) });
 
-      // Bônus único de boas-vindas para contas recém-criadas.
-      // A janela curta é confirmada também pelas regras do Realtime Database.
+      // Exibe o presente para contas novas; o crédito só ocorre ao tocar em COLETAR.
       try {
         const now = Date.now();
         const profileIsNew = now - Number(profileData.createdAt || 0) <= 24 * 60 * 60 * 1000;
@@ -506,25 +508,13 @@ function Dashboard({ firebaseUser, onSignOut }) {
         const authTime = Number(tokenResult.claims.auth_time || 0) * 1000;
         const sessionIsNew = authTime > 0 && now - authTime <= 10 * 60 * 1000;
         if (profileIsNew && sessionIsNew) {
-          const walletRef = ref(database, `wallets/${uid}`);
-          const bonusResult = await runTransaction(walletRef, (current) => {
-            const wallet = current || {};
-            if (wallet.signupBonusGranted === true) return;
-            return {
-              ...wallet,
-              withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + 3.50).toFixed(2)),
-              signupBonusGranted: true,
-              signupBonusAmount: 3.50,
-              signupBonusAt: Date.now()
-            };
-          }, { applyLocally: false });
-          if (bonusResult.committed) showToast('Bônus de cadastro de R$ 3,50 creditado no seu saldo interno!', 'success');
+          const walletSnapshot = await get(ref(database, `wallets/${uid}`));
+          const wallet = walletSnapshot.val() || {};
+          if (wallet.signupBonusGranted !== true) setShowSignupGift(true);
         }
       } catch (bonusError) {
-        console.error('Não foi possível creditar o bônus de cadastro:', bonusError);
+        console.error('Não foi possível verificar o presente de cadastro:', bonusError);
       }
-      if (!snapshot.exists()) await set(profileRef, profileData);
-      else await update(profileRef, { email: profileData.email, displayName: profileData.displayName, inviteCode, ...(referrerUid && !oldProfile.referrerUid ? { referrerUid } : {}) });
       const codeRef = ref(database, `inviteCodes/${inviteCode}`);
       const codeSnapshot = await get(codeRef);
       if (!codeSnapshot.exists()) await set(codeRef, { uid, createdAt: Date.now() });
@@ -778,6 +768,40 @@ function Dashboard({ firebaseUser, onSignOut }) {
       showToast('Não foi possível enviar o pedido: ' + (error?.message || 'verifique sua conexão.'), 'error');
     } finally {
       setInvestmentBusy(false);
+    }
+  };
+
+  const handleCollectSignupGift = async () => {
+    if (!database || !firebaseUser?.uid || giftCollecting) return;
+    setGiftCollecting(true);
+    try {
+      const walletRef = ref(database, `wallets/${firebaseUser.uid}`);
+      const result = await runTransaction(walletRef, (current) => {
+        const wallet = current || {};
+        if (wallet.signupBonusGranted === true) return;
+        return {
+          ...wallet,
+          withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + 3.50).toFixed(2)),
+          signupBonusGranted: true,
+          signupBonusAmount: 3.50,
+          signupBonusAt: Date.now()
+        };
+      }, { applyLocally: false });
+      if (!result.committed) {
+        setShowSignupGift(false);
+        showToast('Este bônus já foi coletado nesta conta.', 'info');
+        return;
+      }
+      const wallet = result.snapshot.val() || {};
+      setWalletData(wallet);
+      setUser((prev) => ({ ...prev, withdrawableBalance: Number(wallet.withdrawableBalance || 0) }));
+      setGiftCelebration(true);
+      showToast('Presente coletado! R$ 3,50 adicionados ao seu saldo.', 'success');
+      setTimeout(() => { setGiftCelebration(false); setShowSignupGift(false); }, 2600);
+    } catch (error) {
+      showToast('Não foi possível coletar o presente. Tente novamente.', 'error');
+    } finally {
+      setGiftCollecting(false);
     }
   };
 
@@ -3004,6 +3028,27 @@ function Dashboard({ firebaseUser, onSignOut }) {
         {/* ====================================================================
             2. MODAL DE BOAS-VINDAS (POPUP INICIAL)
            ==================================================================== */}
+        {showSignupGift && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 px-5 py-6 backdrop-blur-md">
+            <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-amber-300/50 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 p-6 text-center text-white shadow-[0_25px_90px_rgba(8,145,178,0.35)]">
+              <div className="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-cyan-400/20 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-12 -right-8 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl" />
+              {giftCelebration && <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">{Array.from({length:36},(_,i)=><span key={i} className="absolute top-0 h-3 w-2 animate-[giftConfetti_1.8s_ease-in_forwards]" style={{left:`${(i*37)%100}%`,background:['#fbbf24','#22d3ee','#f472b6','#a3e635','#ffffff'][i%5],animationDelay:`${(i%9)*0.08}s`,transform:`rotate(${i*41}deg)`}} />)}</div>}
+              <div className="relative mx-auto mb-4 flex h-32 w-32 items-center justify-center rounded-[2rem] border border-amber-200/50 bg-gradient-to-br from-amber-300 via-yellow-500 to-orange-500 shadow-[0_0_45px_rgba(251,191,36,0.4)]">
+                <div className="absolute inset-2 rounded-[1.5rem] border border-white/40" />
+                <span className="text-7xl drop-shadow-lg">🎁</span>
+                <span className="absolute -right-2 -top-2 rounded-full border border-white/50 bg-cyan-400 px-3 py-1 text-[10px] font-black text-slate-950">BÔNUS</span>
+              </div>
+              <div className="relative text-[10px] font-black tracking-[.28em] text-cyan-200">BOAS-VINDAS NEXUS</div>
+              <h2 className="relative mt-2 text-2xl font-black">Seu presente chegou!</h2>
+              <p className="relative mt-2 text-sm text-blue-100">Toque no botão e colete seu bônus de cadastro.</p>
+              <div className="relative my-5 text-4xl font-black text-amber-300 drop-shadow-lg">R$ 3,50</div>
+              <button type="button" onClick={handleCollectSignupGift} disabled={giftCollecting} className="relative w-full rounded-2xl bg-gradient-to-r from-amber-300 via-yellow-400 to-orange-400 px-5 py-4 text-base font-black uppercase tracking-wider text-slate-950 shadow-xl transition hover:brightness-110 active:scale-[.98] disabled:opacity-60">{giftCollecting ? 'Coletando...' : '🎁 COLETAR'}</button>
+              <p className="relative mt-3 text-[10px] text-blue-200/70">Bônus único por conta, sujeito às regras da plataforma.</p>
+            </div>
+            <style>{`@keyframes giftConfetti{0%{transform:translateY(-15px) rotate(0deg);opacity:1}100%{transform:translateY(520px) rotate(720deg);opacity:0}}`}</style>
+          </div>
+        )}
         {showWelcomeModal && (
           <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border border-slate-200 animate-scaleIn">
