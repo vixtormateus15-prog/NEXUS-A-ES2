@@ -386,16 +386,19 @@ export default function AdminPanel({ firebaseUser }) {
         if (!creditResult.snapshot.child('depositCredits').child(selected.id).exists()) {
           throw new Error('O Firebase não confirmou o crédito na carteira. O pedido continua pendente; tente novamente.');
         }
-        await update(ref(database, 'depositHistory/' + selected.uid + '/' + selected.id), {
-          amount,
-          status: 'paid',
-          confirmedAt: Date.now(),
-          transactionId: txId.trim(),
-          requestId: selected.id
-        });
-        // Após confirmar o crédito, arquiva somente no histórico e retira o pedido
-        // das filas do painel e do espelho "em processamento" do cliente.
+        // Grava o histórico e remove o pedido pendente em uma única operação
+        // multipath. Assim o saldo nunca fica confirmado sem o respectivo registro.
+        const confirmedAt = Date.now();
         await update(ref(database), {
+          ['depositHistory/' + selected.uid + '/' + selected.id]: {
+            uid: selected.uid,
+            amount,
+            status: 'paid',
+            confirmedAt,
+            createdAt: Number(selected.createdAt || confirmedAt),
+            transactionId: txId.trim(),
+            requestId: selected.id
+          },
           [path]: null,
           ['depositRequestsByUser/' + selected.uid + '/' + selected.id]: null
         });
