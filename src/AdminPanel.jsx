@@ -108,12 +108,13 @@ export default function AdminPanel({ firebaseUser }) {
     if (!reference || reference.length < 5 || reference.length > 100) { setNotice('Informe uma referência única com pelo menos 5 caracteres.'); return; }
     setYieldBusy(true); setNotice('');
     const creditedAt = Date.now();
+    let duplicateDetected = false;
     try {
       const walletRef = ref(database, 'wallets/' + uid);
       const result = await runTransaction(walletRef, (current) => {
         const wallet = current || {};
         const credits = wallet.yieldCredits || {};
-        if (credits[reference]) return;
+        if (credits[reference]) { duplicateDetected = true; return; }
         const investments = wallet.investments || {};
         if (yieldInvestmentId && !investments[yieldInvestmentId]) return;
         const updatedInvestments = { ...investments };
@@ -123,7 +124,8 @@ export default function AdminPanel({ firebaseUser }) {
         }
         return { ...wallet, withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + amount).toFixed(2)), investments: updatedInvestments, yieldCredits: { ...credits, [reference]: { amount: Number(amount.toFixed(2)), description: yieldDescription.trim() || 'Rendimento confirmado', reference, investmentId: yieldInvestmentId || null, creditedAt, creditedBy: firebaseUser.uid } } };
       }, { applyLocally: false });
-      if (!result.snapshot.child('yieldCredits').child(reference).exists()) throw new Error('Esta referência já foi utilizada ou o Firebase não confirmou o crédito. Confira a carteira antes de tentar novamente.');
+      if (duplicateDetected) throw new Error('Esta referência já foi utilizada. O crédito não foi repetido.');
+      if (!result.snapshot.child('yieldCredits').child(reference).exists()) throw new Error('Não foi possível confirmar o crédito ou o investimento selecionado não existe.');
       setNotice('Crédito registrado e adicionado ao saldo sacável do cliente.');
       setYieldAmount(''); setYieldReference(''); setYieldDescription('Rendimento confirmado'); setYieldInvestmentId('');
     } catch (error) { setNotice('Não foi possível registrar o rendimento: ' + (error?.message || 'erro desconhecido')); }
