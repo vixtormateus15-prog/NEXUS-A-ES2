@@ -3378,7 +3378,7 @@ export default function App() {
   if (!authReady) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">Carregando NEXUS AÇÕES...</div>;
   }
-  const isAdminRoute = window.location.pathname.replace(/\\/+$/, '') === '/admin';
+  const isAdminRoute = window.location.pathname.replace(/\/+$/, '') === '/admin';
   const isAdminAccount = String(firebaseUser?.email || '').trim().toLowerCase() === 'vixtormateus15@gmail.com';
   if (!firebaseUser) {
     return <AuthScreen adminOnly={isAdminRoute} />;
