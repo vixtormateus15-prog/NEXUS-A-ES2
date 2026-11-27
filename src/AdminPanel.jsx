@@ -50,6 +50,17 @@ export default function AdminPanel({ firebaseUser }) {
     const subscribe = (path, setter) => stops.push(onValue(ref(database,path),(snap) => {
       const raw=snap.val() || {};
       setter(Object.entries(raw).map(([id,value]) => ({id,...(value || {})})).sort((a,b)=>Number(b.createdAt || 0)-Number(a.createdAt || 0)));
+      if (path === 'depositRequests') {
+        const mirrorUpdates = {};
+        Object.entries(raw).forEach(([id, request]) => {
+          if (request?.uid && (request.status === 'pending' || request.status === 'awaiting_payment')) {
+            mirrorUpdates['depositRequestsByUser/' + request.uid + '/' + id] = request;
+          }
+        });
+        if (Object.keys(mirrorUpdates).length) {
+          update(ref(database), mirrorUpdates).catch((error) => console.error('Falha ao recuperar pedidos antigos de depósito:', error));
+        }
+      }
       setLoading(false);
     },() => { setNotice('Falha ao ler '+path+'. Verifique as regras do Realtime Database.'); setLoading(false); }));
     subscribe('depositRequests',setDeposits);
