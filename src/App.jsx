@@ -361,7 +361,7 @@ const PlanVisualBanner = ({ plan, heightClass = 'h-40' }) => {
         <div className="w-20 h-24 rounded-2xl bg-slate-950/60 backdrop-blur-md border border-white/20 shadow-2xl flex flex-col items-center justify-between p-2.5 transform rotate-3">
           <div className="w-full flex items-center justify-between">
             <span className="text-[8px] font-bold text-cyan-300">NX-IDX</span>
-            <span className="text-[8px] font-bold text-emerald-400">+{( (plan.dailyReturn / plan.price) * 100 ).toFixed(1)}%</span>
+            <span className="text-[8px] font-extrabold text-emerald-300">+{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}%</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg">
             <IconComponent className="w-5 h-5 text-white" />
@@ -970,6 +970,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <span className="text-lg font-extrabold text-blue-800">{formatBRL(currentPlan.price)}</span>
             </div>
 
+            {/* Informação de transparência sobre projeções */}
+            <p className="mt-3 text-[10px] leading-relaxed text-slate-500">Percentuais e valores exibidos são projeções calculadas com base nos parâmetros do plano; não representam garantia de rendimento ou promessa de resultado.</p>
+
             {/* Tabela de especificações */}
             <div className="divide-y divide-slate-100 text-xs mt-1">
               <div className="py-2.5 flex justify-between">
@@ -980,9 +983,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
                 <span className="text-slate-500">Ciclo:</span>
                 <span className="font-bold text-slate-900">{currentPlan.days} dias</span>
               </div>
-              <div className="py-2.5 flex justify-between">
-                <span className="text-slate-500">Retorno total:</span>
-                <span className="font-extrabold text-emerald-700">{formatBRL(totalReturn)} ({((totalReturn / currentPlan.price) * 100).toFixed(1).replace('.', ',')}% estimados)</span>
+              <div className="py-3 px-3 my-1 rounded-xl bg-emerald-50 border border-emerald-200">
+                <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-800">Projeção acumulada do ciclo</div>
+                <div className="text-xl font-black text-emerald-700 mt-0.5">+{((totalReturn / currentPlan.price) * 100).toFixed(1).replace('.', ',')}%</div>
+                <div className="text-xs font-semibold text-emerald-800">{formatBRL(totalReturn)} em {currentPlan.days} dias (estimativa)</div>
               </div>
               <div className="py-2.5 flex justify-between">
                 <span className="text-slate-500">Status:</span>
@@ -1845,8 +1849,11 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   <div className="p-3.5 flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias · {((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% acumulado estimado
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias</span>
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-1 text-xs font-extrabold text-emerald-800">
+                          +{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% acumulado estimado
+                        </span>
                       </div>
                       <div className="text-[11px] font-bold text-blue-700 mt-0.5">
                         {plan.tag} {plan.bought > 0 ? `• ${plan.bought} feita(s)` : ''}
@@ -1922,8 +1929,11 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   <div className="p-3.5 flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-extrabold text-slate-900">{plan.name}</h4>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias · {((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% acumulado estimado
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        <span className="text-xs text-slate-600">{formatBRL(plan.dailyReturn)} estimados/dia · {plan.days} dias</span>
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-1 text-xs font-extrabold text-emerald-800">
+                          +{((plan.dailyReturn * plan.days / plan.price) * 100).toFixed(1).replace('.', ',')}% acumulado estimado
+                        </span>
                       </div>
                       <div className="text-[11px] font-bold text-blue-700 mt-0.5">{plan.tag}</div>
                     </div>
