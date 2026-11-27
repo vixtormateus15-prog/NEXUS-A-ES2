@@ -235,15 +235,17 @@ export default function AdminPanel({ firebaseUser }) {
           const wallet = current || {};
           const reservations = wallet.withdrawalReservations || {};
           if (reservations[selected.id]) return wallet;
-          const hasOpen = Object.values(reservations).some((entry) => entry && (entry.status === 'pending' || entry.status === 'approved'));
-          const hasActivatedPlan = Object.values(wallet.investments || {}).some((inv) => inv && inv.instanceId);
+          // Ignora a própria solicitação ao verificar se já existe outro saque em aberto.
+          const hasOpen = Object.entries(reservations).some(([requestId, entry]) =>
+            requestId !== selected.id && entry && (entry.status === 'pending' || entry.status === 'approved')
+          );
+          // Somente o saldo explicitamente liberado para saque pode ser reservado.
+          // Saldo de depósito não é considerado disponível para retirada.
           const rewardsBalance = Number(wallet.withdrawableBalance || 0);
           const depositBalance = Number(wallet.depositBalance || 0);
-          const totalBalance = rewardsBalance + depositBalance;
-          if (hasOpen || !hasActivatedPlan || totalBalance < amount) return;
-          // Reserva primeiro bônus/check-ins/rendimentos e depois o saldo de depósitos.
-          const rewardsUsed = Math.min(rewardsBalance, amount);
-          const depositUsed = Number((amount - rewardsUsed).toFixed(2));
+          if (hasOpen || rewardsBalance < amount) return;
+          const rewardsUsed = amount;
+          const depositUsed = 0;
           const record = {...selected, status:'approved', reservedAt:Date.now(), rewardsReserved:rewardsUsed, depositReserved:depositUsed};
           return {
             ...wallet,
