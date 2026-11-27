@@ -2461,7 +2461,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
     // TELA 4: EQUIPE
     // ------------------------------------------------------------------------
     if (activeTab === 'equipe') {
-      const inviteLink = `https://www.nexusacoesoficial.com.br/?code=${encodeURIComponent(user.inviteCode)}`;
+      const inviteLink = `https://nexus-a-es2.pages.dev/?code=${encodeURIComponent(user.inviteCode)}`;
       const directCount = teamMembers.length;
       const referralTiers = [
         { icon: '🏅', title: 'Nível 1 · Bronze', target: 1, benefit: 'Selo de membro indicador' },
