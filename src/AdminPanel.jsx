@@ -100,9 +100,10 @@ export default function AdminPanel({ firebaseUser }) {
         const walletRef = ref(database, 'wallets/' + selected.uid);
         const amount = Number(Number(selected.amount || 0).toFixed(2));
         if (!selected.uid || !Number.isFinite(amount) || amount <= 0) throw new Error('Pedido sem usuário ou valor válido.');
-        await runTransaction(walletRef, (current) => {
+        const creditResult = await runTransaction(walletRef, (current) => {
           const wallet = current || {};
           const credits = wallet.depositCredits || {};
+          // O mesmo pedido nunca pode creditar duas vezes, mesmo se o admin clicar novamente.
           if (credits[selected.id]) return wallet;
           return {
             ...wallet,
@@ -113,6 +114,9 @@ export default function AdminPanel({ firebaseUser }) {
             }
           };
         }, { applyLocally: false });
+        if (!creditResult.snapshot.child('depositCredits').child(selected.id).exists()) {
+          throw new Error('O Firebase não confirmou o crédito na carteira. O pedido continua pendente; tente novamente.');
+        }
         await update(ref(database, 'depositHistory/' + selected.uid + '/' + selected.id), {
           amount,
           status: 'paid',
@@ -144,8 +148,16 @@ export default function AdminPanel({ firebaseUser }) {
       } else {
         await update(ref(database,path), changes);
       }
-      setSelected(null);
-      setNotice(selected._type === 'deposit' && status === 'awaiting_payment' ? 'PIX enviado ao cliente! O código foi salvo no Firebase e já está disponível na conta dele. A tela do cliente recebe a atualização em tempo real.' : status === 'paid' && selected._type === 'deposit' ? 'Depósito confirmado e crédito registrado na carteira do cliente.' : 'Registro atualizado no Firebase. Confira o extrato bancário antes de confirmar pagamentos.');
+      if (selected._type === 'deposit' && status === 'awaiting_payment') {
+        // Mantém o pedido aberto no painel para o admin acompanhar até aprovar ou rejeitar.
+        setSelected({ ...selected, ...changes, _type: 'deposit' });
+        setNotice('✓ Código PIX enviado ao cliente. O pedido continua nesta aba como “PIX enviado” até você confirmar o recebimento ou rejeitar.');
+      } else {
+        setSelected(null);
+        setNotice(status === 'paid' && selected._type === 'deposit'
+          ? '✓ Depósito confirmado. O crédito foi verificado na carteira do cliente e registrado uma única vez.'
+          : 'Registro atualizado no Firebase. Confira o extrato bancário antes de confirmar pagamentos.');
+      }
     } catch(e) { setNotice('Não foi possível salvar: '+(e?.message || 'verifique as permissões do Firebase.')); }
     finally { setBusy(false); }
   };
