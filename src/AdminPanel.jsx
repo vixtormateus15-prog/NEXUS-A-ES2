@@ -19,6 +19,7 @@ const NAV = [
   ['overview','Visão geral',LayoutDashboard],
   ['deposits','Depósitos',ArrowDownToLine],
   ['withdrawals','Saques',ArrowUpFromLine],
+  ['investment-requests','Ativações de planos',Activity],
   ['users','Clientes',Users],
   ['wallets','Carteiras',Wallet],
   ['bonuses','Bônus e check-ins',Gift],
@@ -32,6 +33,7 @@ export default function AdminPanel({ firebaseUser }) {
   const [mobileNav,setMobileNav] = useState(false);
   const [deposits,setDeposits] = useState([]);
   const [withdrawals,setWithdrawals] = useState([]);
+  const [investmentRequests,setInvestmentRequests] = useState([]);
   const [profiles,setProfiles] = useState([]);
   const [wallets,setWallets] = useState([]);
   const [loading,setLoading] = useState(true);
@@ -57,21 +59,23 @@ export default function AdminPanel({ firebaseUser }) {
     const subscribe = (path, setter) => stops.push(onValue(ref(database,path),(snap) => {
       const raw=snap.val() || {};
       setter(Object.entries(raw).map(([id,value]) => ({id,...(value || {})})).sort((a,b)=>Number(b.createdAt || 0)-Number(a.createdAt || 0)));
-      if (path === 'depositRequests') {
+      if (['depositRequests', 'withdrawalRequests', 'investmentRequests'].includes(path)) {
         const mirrorUpdates = {};
         Object.entries(raw).forEach(([id, request]) => {
-          if (request?.uid && (request.status === 'pending' || request.status === 'awaiting_payment')) {
-            mirrorUpdates['depositRequestsByUser/' + request.uid + '/' + id] = request;
+          if (request?.uid) {
+            const mirrorPath = path === 'depositRequests' ? 'depositRequestsByUser/' : path === 'withdrawalRequests' ? 'withdrawalRequestsByUser/' : 'investmentRequestsByUser/';
+            mirrorUpdates[mirrorPath + request.uid + '/' + id] = request;
           }
         });
         if (Object.keys(mirrorUpdates).length) {
-          update(ref(database), mirrorUpdates).catch((error) => console.error('Falha ao recuperar pedidos antigos de depósito:', error));
+          update(ref(database), mirrorUpdates).catch((error) => console.error('Falha ao sincronizar pedidos do cliente:', error));
         }
       }
       setLoading(false);
     },() => { setNotice('Falha ao ler '+path+'. Verifique as regras do Realtime Database.'); setLoading(false); }));
     subscribe('depositRequests',setDeposits);
     subscribe('withdrawalRequests',setWithdrawals);
+    subscribe('investmentRequests',setInvestmentRequests);
     subscribe('profiles',setProfiles);
     subscribe('wallets',setWallets);
     return () => stops.forEach(stop => stop());
@@ -85,6 +89,7 @@ export default function AdminPanel({ firebaseUser }) {
   }),[all,filter,search]);
   const pendingDeposits=deposits.filter(x=>x.status==='pending' || x.status==='awaiting_payment');
   const pendingWithdrawals=withdrawals.filter(x=>x.status==='pending' || x.status==='approved');
+  const pendingInvestmentRequests=investmentRequests.filter(x=>x.status==='pending');
   const depositTotal=deposits.filter(x=>x.status==='paid').reduce((n,x)=>n+Number(x.amount||0),0);
   const paidWithdrawals=withdrawals.filter(x=>x.status==='paid').reduce((n,x)=>n+Number(x.amount||0),0);
   const selectedTitle=selected ? (selected.name || selected.email || selected.uid || selected.id) : '';
@@ -132,6 +137,71 @@ export default function AdminPanel({ firebaseUser }) {
     finally { setYieldBusy(false); }
   };
 
+  const approveInvestmentRequest = async (item, status) => {
+    if (!item || busy) return;
+    setBusy(true); setNotice('');
+    try {
+      const path = 'investmentRequests/' + item.id;
+      let investmentId = item.investmentId || '';
+      if (status === 'approved') {
+        const catalog = {
+          'nexus-start': { name:'NEXUS START', price:35, dailyReturn:4.50, days:23, limit:1 },
+          'nexus-tech': { name:'NEXUS TECH', price:100, dailyReturn:17.50, days:17, limit:1 },
+          'nexus-agro': { name:'NEXUS AGRO', price:200, dailyReturn:38.50, days:16, limit:3 },
+          'nexus-industrial': { name:'NEXUS INDUSTRIAL', price:300, dailyReturn:60.50, days:15, limit:2 },
+          'nexus-energy': { name:'NEXUS ENERGY', price:600, dailyReturn:127.50, days:9, limit:1 },
+          'nexus-crypto': { name:'NEXUS CRYPTO', price:1000, dailyReturn:212.75, days:9, limit:2 },
+          'nexus-global': { name:'NEXUS GLOBAL', price:2500, dailyReturn:453.28, days:11, limit:2 },
+          'nexus-prime': { name:'NEXUS PRIME', price:5000, dailyReturn:817.36, days:12, limit:2 }
+        };
+        const plan = catalog[item.planId];
+        if (!plan || !item.uid) throw new Error('Plano ou cliente inválido.');
+        const now = Date.now();
+        const brNow = new Date(now - 3 * 60 * 60 * 1000);
+        const firstCreditAt = Date.UTC(brNow.getUTCFullYear(), brNow.getUTCMonth(), brNow.getUTCDate(), 3, 0, 0) + 86400000;
+        const id = 'INV_' + item.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const walletRef = ref(database, 'wallets/' + item.uid);
+        const result = await runTransaction(walletRef, (current) => {
+          const wallet = current || {};
+          const activations = wallet.investmentActivations || {};
+          if (activations[item.id]) return wallet;
+          const investments = wallet.investments || {};
+          const bought = Object.values(investments).filter((inv) => inv?.planId === item.planId).length;
+          const balance = Number(wallet.depositBalance || 0);
+          if (bought >= plan.limit || balance < plan.price) return;
+          const investment = {
+            instanceId:id, activationKey:item.id, planId:item.planId, name:plan.name,
+            price:plan.price, dailyReturn:plan.dailyReturn, days:plan.days,
+            startAt:now, firstCreditAt, endAt:firstCreditAt + plan.days * 86400000,
+            status:'active', daysCredited:0, paidTotal:0,
+            projectedTotal:Number((plan.dailyReturn * plan.days).toFixed(2)),
+            timezone:'America/Sao_Paulo'
+          };
+          return {
+            ...wallet,
+            depositBalance:Number((balance - plan.price).toFixed(2)),
+            investments:{...investments,[id]:investment},
+            investmentActivations:{...activations,[item.id]:id}
+          };
+        }, { applyLocally:false });
+        const savedWallet = result.snapshot.val() || {};
+        investmentId = savedWallet.investmentActivations?.[item.id] || '';
+        if (!investmentId || !savedWallet.investments?.[investmentId]) {
+          const bought = Object.values(savedWallet.investments || {}).filter((inv) => inv?.planId === item.planId).length;
+          throw new Error(bought >= plan.limit ? 'Limite deste plano já atingido.' : 'Saldo de depósito insuficiente para aprovar este pedido.');
+        }
+      }
+      const changes = {...item, status, investmentId: investmentId || null, updatedAt:Date.now(), updatedBy:firebaseUser.uid};
+      await update(ref(database), {
+        [path]:changes,
+        ['investmentRequestsByUser/' + item.uid + '/' + item.id]:changes
+      });
+      setNotice(status === 'approved' ? 'Plano ativado. O valor foi debitado da carteira e o ciclo começa à próxima meia-noite de Brasília.' : 'Pedido de ativação recusado.');
+    } catch (error) {
+      setNotice('Não foi possível processar o pedido: ' + (error?.message || 'erro desconhecido'));
+    } finally { setBusy(false); }
+  };
+
   const saveRequest=async(status) => {
     if(!selected || busy) return;
     if(selected._type==='withdrawal' && selected.status==='paid' && status!=='paid') { setNotice('Este saque já foi marcado como pago e não pode ser alterado.'); return; }
@@ -141,26 +211,51 @@ export default function AdminPanel({ firebaseUser }) {
     setBusy(true); setNotice('');
     try {
       const path=(selected._type==='deposit'?'depositRequests/':'withdrawalRequests/')+selected.id;
-      if (selected._type === 'withdrawal' && status === 'rejected' && selected.status !== 'paid') {
-        const walletRef = ref(database, 'wallets/' + selected.uid);
+      if (selected._type === 'withdrawal' && status === 'approved' && selected.status === 'pending') {
         const amount = Number(Number(selected.amount || 0).toFixed(2));
         if (!selected.uid || !Number.isFinite(amount) || amount <= 0) throw new Error('Pedido de saque sem usuário ou valor válido.');
+        const walletRef = ref(database, 'wallets/' + selected.uid);
+        const reserveResult = await runTransaction(walletRef, (current) => {
+          const wallet = current || {};
+          const reservations = wallet.withdrawalReservations || {};
+          if (reservations[selected.id]) return wallet;
+          const hasOpen = Object.values(reservations).some((entry) => entry && (entry.status === 'pending' || entry.status === 'approved'));
+          const active = Object.values(wallet.investments || {}).some((inv) => inv && Date.now() < Number(inv.firstCreditAt || 0) + Number(inv.days || 0) * 86400000);
+          const balance = Number(wallet.withdrawableBalance || 0);
+          if (hasOpen || !active || balance < amount) return;
+          const record = {...selected, status:'approved', reservedAt:Date.now()};
+          return {...wallet, withdrawableBalance:Number((balance - amount).toFixed(2)), withdrawalReservations:{...reservations,[selected.id]:record}};
+        }, { applyLocally:false });
+        if (!reserveResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) throw new Error('Saldo insuficiente, plano inativo ou outro saque já reservado. O pedido continua pendente.');
+      }
+      if (selected._type === 'withdrawal' && status === 'rejected' && selected.status === 'approved') {
+        const walletRef = ref(database, 'wallets/' + selected.uid);
+        const amount = Number(Number(selected.amount || 0).toFixed(2));
         const refundResult = await runTransaction(walletRef, (current) => {
           const wallet = current || {};
           const refunds = wallet.withdrawalRefunds || {};
+          const reservations = wallet.withdrawalReservations || {};
           if (refunds[selected.id]) return wallet;
-          return { ...wallet, withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + amount).toFixed(2)), withdrawalRefunds: { ...refunds, [selected.id]: { amount, refundedAt: Date.now(), refundedBy: firebaseUser.uid } } };
-        }, { applyLocally: false });
-        if (!refundResult.snapshot.child('withdrawalRefunds').child(selected.id).exists()) throw new Error('O estorno não foi confirmado. O pedido continua sem alteração.');
+          if (!reservations[selected.id]) return;
+          return {
+            ...wallet,
+            withdrawableBalance:Number((Number(wallet.withdrawableBalance || 0) + amount).toFixed(2)),
+            withdrawalReservations:{...reservations,[selected.id]:{...reservations[selected.id],status:'rejected',updatedAt:Date.now()}},
+            withdrawalRefunds:{...refunds,[selected.id]:{amount,refundedAt:Date.now(),refundedBy:firebaseUser.uid}}
+          };
+        }, { applyLocally:false });
+        if (!refundResult.snapshot.child('withdrawalRefunds').child(selected.id).exists()) throw new Error('O estorno não foi confirmado.');
       }
-      if (selected._type === 'withdrawal') {
+      if (selected._type === 'withdrawal' && status === 'paid') {
+        if (selected.status !== 'approved') throw new Error('Aprove e reserve o saldo antes de marcar o saque como pago.');
         const walletRef = ref(database, 'wallets/' + selected.uid);
-        await runTransaction(walletRef, (current) => {
+        const paidResult = await runTransaction(walletRef, (current) => {
           const wallet = current || {};
           const reservations = wallet.withdrawalReservations || {};
-          if (!reservations[selected.id]) return wallet;
-          return { ...wallet, withdrawalReservations: { ...reservations, [selected.id]: { ...reservations[selected.id], status, updatedAt: Date.now() } } };
-        }, { applyLocally: false });
+          if (!reservations[selected.id]) return;
+          return {...wallet, withdrawalReservations:{...reservations,[selected.id]:{...reservations[selected.id],status:'paid',paidAt:Date.now()}}};
+        }, { applyLocally:false });
+        if (!paidResult.snapshot.child('withdrawalReservations').child(selected.id).exists()) throw new Error('Não foi encontrada a reserva deste saque.');
       }
       if (selected._type === 'deposit' && status === 'paid') {
         const walletRef = ref(database, 'wallets/' + selected.uid);
@@ -241,7 +336,7 @@ export default function AdminPanel({ firebaseUser }) {
 
   const nav=<div className="flex h-full flex-col">
     <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5"><div className="rounded-xl bg-cyan-400/15 p-2.5 text-cyan-300"><ShieldCheck size={24}/></div><div><p className="text-[10px] font-black tracking-[.25em] text-cyan-300">NEXUS AÇÕES</p><p className="text-lg font-black">Central Admin</p></div></div>
-    <nav className="flex-1 space-y-1 p-3">{NAV.map(([id,label,Icon])=><button key={id} onClick={()=>{setSection(id);setSelected(null);setMobileNav(false);setSearch('');setFilter('all');}} className={'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition '+(section===id?'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950/30':'text-slate-200 hover:bg-white/5 hover:text-white')}><Icon size={18}/>{label}{id==='deposits' && pendingDeposits.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingDeposits.length}</span> : null}{id==='withdrawals' && pendingWithdrawals.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingWithdrawals.length}</span> : null}</button>)}</nav>
+    <nav className="flex-1 space-y-1 p-3">{NAV.map(([id,label,Icon])=><button key={id} onClick={()=>{setSection(id);setSelected(null);setMobileNav(false);setSearch('');setFilter('all');}} className={'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition '+(section===id?'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950/30':'text-slate-200 hover:bg-white/5 hover:text-white')}><Icon size={18}/>{label}{id==='deposits' && pendingDeposits.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingDeposits.length}</span> : null}{id==='withdrawals' && pendingWithdrawals.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingWithdrawals.length}</span> : null}{id==='investment-requests' && pendingInvestmentRequests.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingInvestmentRequests.length}</span> : null}</button>)}</nav>
     <div className="border-t border-white/10 p-4"><p className="truncate text-xs text-slate-200">{firebaseUser.email}</p><button onClick={()=>signOut(auth)} className="mt-3 flex w-full items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5"><LogOut size={16}/> Sair da conta</button></div>
   </div>;
 
@@ -284,6 +379,7 @@ export default function AdminPanel({ firebaseUser }) {
         {section==='users'?<><div><h2 className="text-2xl font-black">Clientes cadastrados</h2><p className="mt-1 text-sm text-slate-200">Consulta dos perfis que as regras do Firebase permitem ao administrador visualizar.</p></div><div className="relative max-w-xl"><Search className="absolute left-3 top-3 text-slate-300" size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome, e-mail ou UID" className="w-full rounded-xl border border-white/10 bg-slate-900 py-3 pl-10 pr-3 text-sm outline-none focus:border-cyan-400"/></div><div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80">{profiles.filter(x=>[x.id,x.email,x.displayName,x.name].join(' ').toLowerCase().includes(search.toLowerCase())).map(x=><div key={x.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 p-4"><div className="min-w-0"><p className="font-bold">{x.displayName||x.name||'Cliente'}</p><p className="break-all text-xs text-slate-300">{x.email||x.id}</p><p className="break-all text-[10px] text-slate-300">UID: {x.id}</p></div><button onClick={()=>{navigator.clipboard?.writeText(x.id);setNotice('UID copiado.')}} className="rounded-lg border border-white/10 p-2 text-slate-300"><Copy size={16}/></button></div>)}{profiles.length===0?<p className="p-8 text-center text-sm text-slate-300">Nenhum perfil retornado. Verifique as permissões de leitura administrativa no Firebase.</p>:null}</div></>:null}
         {section==='wallets'?<><div><h2 className="text-2xl font-black">Carteiras</h2><p className="mt-1 text-sm text-slate-200">Consulta dos saldos registrados; não altere valores diretamente nesta tela.</p></div><div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80">{wallets.map(w=><div key={w.id} className="grid gap-2 border-b border-white/5 p-4 sm:grid-cols-4"><div className="break-all text-xs text-slate-200 sm:col-span-2">UID: {w.id}</div><div><p className="text-[10px] text-slate-300">Saldo disponível</p><p className="font-black">{money(w.withdrawableBalance)}</p></div><div><p className="text-[10px] text-slate-300">Check-ins</p><p className="font-bold">{Number(w.checkinCount||0)}</p></div></div>)}{wallets.length===0?<p className="p-8 text-center text-sm text-slate-300">Nenhuma carteira retornada.</p>:null}</div></>:null}
         {section==='bonuses'?<><div><h2 className="text-2xl font-black">Bônus e check-ins</h2><p className="mt-1 text-sm text-slate-200">Visão de acompanhamento dos dados de carteira.</p></div><div className="grid gap-3 sm:grid-cols-3">{metric('Carteiras com check-in',wallets.filter(x=>Number(x.checkinCount||0)>0).length,Gift,'text-violet-300')}{metric('Check-ins registrados',wallets.reduce((n,x)=>n+Number(x.checkinCount||0),0),CheckCircle2)}{metric('Saldo de carteira somado',money(wallets.reduce((n,x)=>n+Number(x.withdrawableBalance||0),0)),Wallet,'text-emerald-300')}</div><p className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-4 text-sm text-amber-100">Crédito e alteração de bônus precisam ser executados por uma rotina de servidor com validação e histórico imutável. Este painel não inventa nem credita valores.</p></>:null}
+        {section==='investment-requests'?<><div><h2 className="text-2xl font-black">Ativações de planos</h2><p className="mt-1 text-sm text-slate-200">Confira o saldo do cliente antes de aprovar. A ativação debita o valor apenas após sua confirmação.</p></div><div className="grid gap-3 sm:grid-cols-3">{metric('Pedidos recebidos',investmentRequests.length,ClipboardList)}{metric('Aguardando aprovação',pendingInvestmentRequests.length,Clock3,'text-amber-300')}{metric('Planos ativos',investmentRows.length,Activity,'text-emerald-300')}</div><div className="space-y-3">{investmentRequests.length===0?<p className="rounded-xl border border-white/10 bg-slate-900/80 p-5 text-sm text-slate-300">Nenhum pedido de ativação recebido.</p>:investmentRequests.map((item)=><article key={item.id} className="rounded-2xl border border-white/10 bg-slate-900/80 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-black">{item.planName||item.planId||'Plano'}</h3><p className="mt-1 break-all text-xs text-slate-300">{item.email||item.uid}</p><p className="text-[11px] text-slate-400">UID: {item.uid} · {date(item.createdAt)}</p></div><div className="text-right"><p className="text-lg font-black">{money(item.price)}</p><span className={'inline-block rounded-full px-2 py-1 text-[10px] font-bold '+statusClass(item.status)}>{statusLabel(item.status)}</span></div></div>{item.status==='pending'?<div className="mt-3 grid grid-cols-2 gap-2"><button disabled={busy} onClick={()=>approveInvestmentRequest(item,'approved')} className="rounded-xl bg-emerald-400 px-3 py-2.5 text-sm font-black text-slate-950 disabled:opacity-50">Conferir saldo e aprovar</button><button disabled={busy} onClick={()=>approveInvestmentRequest(item,'rejected')} className="rounded-xl bg-rose-500/15 px-3 py-2.5 text-sm font-bold text-rose-300 disabled:opacity-50">Recusar pedido</button></div>:<p className="mt-3 text-xs text-slate-400">{item.status==='approved'?'Investimento ativado e debitado da carteira.': 'Pedido encerrado.'}</p>}</article>)}</div></>:null}
         {section==='yields'?<><div><h2 className="text-2xl font-black">Rendimentos dos investimentos</h2><p className="mt-1 text-sm text-slate-200">Selecione um plano para preencher o pagamento diário. O valor só entra no saldo sacável quando você confirmar aqui.</p></div>
           <div className="grid gap-3 lg:grid-cols-2">{investmentRows.length===0?<p className="rounded-xl border border-white/10 bg-slate-900/80 p-4 text-sm text-slate-300">Nenhum investimento ativado até agora.</p>:investmentRows.map((inv)=>{const first=Number(inv.firstCreditAt||0);const day=first&&Date.now()>=first?Math.min(Number(inv.days||0),Math.floor((Date.now()-first)/86400000)+1):0;const refKey=day?inv.instanceId+'_D'+day:'';const already=Boolean(refKey&&inv.wallet.yieldCredits?.[refKey]);return <div key={inv.instanceId} className="rounded-2xl border border-white/10 bg-slate-900/80 p-4"><div className="flex items-start justify-between gap-3"><div><div className="font-black">{inv.name}</div><div className="mt-1 text-[11px] text-slate-300">UID: {inv.uid}</div><div className="text-[11px] text-slate-300">Ativado: {date(inv.startAt)}</div></div><span className="rounded-full bg-cyan-400/10 px-2 py-1 text-[10px] font-bold text-cyan-200">{day}/{inv.days} dias</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-xs"><div className="rounded-lg bg-slate-950 p-2"><div className="text-slate-400">Previsto/dia</div><strong>{money(inv.dailyReturn)}</strong></div><div className="rounded-lg bg-slate-950 p-2"><div className="text-slate-400">Já lançado</div><strong>{money(inv.paidTotal)}</strong></div></div><button disabled={!day||already||yieldBusy} onClick={()=>{setYieldUid(inv.uid);setYieldAmount(String(inv.dailyReturn));setYieldReference(refKey);setYieldDescription('Rendimento '+inv.name+' - dia '+day);setYieldInvestmentId(inv.instanceId);setNotice(already?'Este dia já foi lançado.':'Dados preenchidos abaixo. Confira o pagamento e confirme.');}} className="mt-3 w-full rounded-xl bg-cyan-400 px-3 py-2.5 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">{already?'Dia já creditado':day?'Preencher pagamento do dia '+day:'Aguardando primeiro dia às 00:00'}</button></div>})}</div>
           <form onSubmit={creditManualYield} className="max-w-2xl space-y-4 rounded-2xl border border-white/10 bg-slate-900/80 p-5">
