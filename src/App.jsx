@@ -447,6 +447,8 @@ function Dashboard({ firebaseUser, onSignOut }) {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [tempPixType, setTempPixType] = useState('CPF');
   const [tempPixKey, setTempPixKey] = useState('');
+  const [withdrawCpf, setWithdrawCpf] = useState('');
+  const [withdrawHolderName, setWithdrawHolderName] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [teamSearch, setTeamSearch] = useState('');
   const [guideStepIndex, setGuideStepIndex] = useState(0);
@@ -868,6 +870,32 @@ function Dashboard({ firebaseUser, onSignOut }) {
     }
     if (val > Number(user.withdrawableBalance || 0)) {
       showToast('Saldo disponível para retirada insuficiente.', 'error');
+      return;
+    }
+    const cpfDigits = withdrawCpf.replace(/\\D/g, '');
+    if (cpfDigits.length !== 11) {
+      showToast('Informe um CPF válido com 11 números.', 'error');
+      return;
+    }
+    if (!withdrawHolderName.trim()) {
+      showToast('Informe o nome completo do titular da conta bancária.', 'error');
+      return;
+    }
+    const pixKey = tempPixKey.trim();
+    if (!pixKey) {
+      showToast('Informe a chave PIX que receberá o saque.', 'error');
+      return;
+    }
+    if (tempPixType === 'CPF' && pixKey.replace(/\\D/g, '').length !== 11) {
+      showToast('A chave PIX CPF deve conter 11 números.', 'error');
+      return;
+    }
+    if (tempPixType === 'E-mail' && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(pixKey)) {
+      showToast('Informe um e-mail válido como chave PIX.', 'error');
+      return;
+    }
+    if (tempPixType === 'Telefone' && !/^\\+?[0-9()\\s-]{10,20}$/.test(pixKey)) {
+      showToast('Informe um número de celular válido como chave PIX.', 'error');
       return;
     }
 
@@ -1420,6 +1448,30 @@ function Dashboard({ firebaseUser, onSignOut }) {
             </div>
             <ChevronRight className="w-5 h-5 text-blue-800" />
           </button>
+
+          {/* Dados obrigatórios para identificação e destino do saque */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
+            <h3 className="text-sm font-extrabold text-slate-900">Dados obrigatórios para receber</h3>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">CPF do solicitante</label>
+              <input type="text" inputMode="numeric" autoComplete="off" value={withdrawCpf} onChange={(e) => setWithdrawCpf(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))} placeholder="Digite os 11 números do CPF" className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Nome completo do titular da conta bancária</label>
+              <input type="text" autoComplete="name" value={withdrawHolderName} onChange={(e) => setWithdrawHolderName(e.target.value)} placeholder="Nome exatamente como consta no banco" className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700" />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Tipo de chave PIX</label>
+              <select value={tempPixType} onChange={(e) => setTempPixType(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700">
+                <option value="CPF">CPF</option><option value="E-mail">E-mail</option><option value="Telefone">Número de celular</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">Chave PIX para receber</label>
+              <input type="text" autoComplete="off" value={tempPixKey} onChange={(e) => setTempPixKey(e.target.value)} placeholder={tempPixType === 'CPF' ? 'CPF da chave PIX' : tempPixType === 'E-mail' ? 'seuemail@exemplo.com' : 'DDD + número do celular'} className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-700" />
+            </div>
+            <p className="text-[11px] leading-relaxed text-slate-500">Confira os dados antes de continuar. O CPF identifica o solicitante; a chave PIX indica o destino do pagamento.</p>
+          </div>
 
           {/* Formulário de Saque */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
