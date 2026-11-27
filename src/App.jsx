@@ -505,7 +505,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
   // Recebe em tempo real o código PIX que o administrador disponibilizar no painel.
   useEffect(() => {
     if (!database || !pixModalData?.requestId) return undefined;
-    return onValue(ref(database, 'depositRequests/' + pixModalData.requestId), (snapshot) => {
+    // O cliente acompanha o próprio espelho do pedido, cuja leitura é autorizada
+    // pelas regras em depositRequestsByUser/{uid}.
+    return onValue(ref(database, 'depositRequestsByUser/' + firebaseUser.uid + '/' + pixModalData.requestId), (snapshot) => {
       if (!snapshot.exists()) return;
       const request = snapshot.val() || {};
       setPixModalData((current) => current?.requestId === pixModalData.requestId
