@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { get, onValue, ref, runTransaction, set } from 'firebase/database';
 import { auth, database, firebaseConfigured } from './firebase';
 import AuthScreen from './AuthScreen.jsx';
+import AdminPanel from './AdminPanel.jsx';
 import {
   Menu,
   Bell,
@@ -2897,5 +2898,6 @@ export default function App() {
   if (!firebaseUser) {
     return <AuthScreen />;
   }
+  if (window.location.pathname.replace(/\\/+$/, '') === '/admin') return <AdminPanel firebaseUser={firebaseUser} />;
   return <Dashboard firebaseUser={firebaseUser} onSignOut={handleSignOut} />;
 }
