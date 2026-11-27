@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { get, onValue, ref, runTransaction, set } from 'firebase/database';
+import { equalTo, get, onValue, orderByChild, query, ref, runTransaction, set } from 'firebase/database';
 import { auth, database, firebaseConfigured } from './firebase';
 import AuthScreen from './AuthScreen.jsx';
 import AdminPanel from './AdminPanel.jsx';
@@ -391,6 +391,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showNotices, setShowNotices] = useState(true);
   const [pixModalData, setPixModalData] = useState(null); // { amount, code }
+  const [pendingDepositRequest, setPendingDepositRequest] = useState(null);
 
   // Toast Notification
   const [toast, setToast] = useState(null);
@@ -479,6 +480,27 @@ function Dashboard({ firebaseUser, onSignOut }) {
         if (active) showProfileError();
       });
     return () => { active = false; };
+  }, [firebaseUser.uid]);
+
+  // Mantém o pedido pendente recuperável mesmo quando o cliente fecha a janela ou atualiza o site.
+  useEffect(() => {
+    if (!database || !firebaseUser?.uid) return undefined;
+    const requestsQuery = query(ref(database, 'depositRequests'), orderByChild('uid'), equalTo(firebaseUser.uid));
+    return onValue(requestsQuery, (snapshot) => {
+      const raw = snapshot.val() || {};
+      const pending = Object.entries(raw)
+        .map(([id, request]) => ({ id, ...(request || {}) }))
+        .filter((request) => request.status === 'pending' || request.status === 'awaiting_payment')
+        .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))[0] || null;
+      setPendingDepositRequest(pending);
+      if (pending) {
+        setPixModalData((current) => current?.requestId === pending.id
+          ? { ...current, amount: Number(pending.amount || 0), code: pending.pixCopyPaste || '', status: pending.status }
+          : current);
+      }
+    }, (error) => {
+      console.error('Falha ao recuperar pedido pendente de depósito:', error);
+    });
   }, [firebaseUser.uid]);
 
   // Recebe em tempo real o código PIX que o administrador disponibilizar no painel.
@@ -761,7 +783,9 @@ function Dashboard({ firebaseUser, onSignOut }) {
         status: 'pending',
         createdAt: Date.now()
       });
-      setPixModalData({ amount: val, requestId, code: '' });
+      const newRequest = { id: requestId, amount: val, code: '', status: 'pending' };
+      setPendingDepositRequest(newRequest);
+      setPixModalData({ amount: val, requestId, code: '', status: 'pending' });
       showToast('Pedido enviado. Aguarde o código PIX ser disponibilizado.', 'success');
     } catch (error) {
       console.error('Falha ao criar pedido de depósito:', error);
@@ -2812,6 +2836,21 @@ function Dashboard({ firebaseUser, onSignOut }) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* O pedido continua acessível depois de fechar o modal ou atualizar a página. */}
+        {pendingDepositRequest && !pixModalData && (
+          <button
+            onClick={() => setPixModalData({
+              amount: Number(pendingDepositRequest.amount || 0),
+              requestId: pendingDepositRequest.id,
+              code: pendingDepositRequest.pixCopyPaste || '',
+              status: pendingDepositRequest.status || 'pending'
+            })}
+            className="fixed bottom-5 right-4 z-40 rounded-full bg-blue-900 px-4 py-3 text-xs font-extrabold text-white shadow-2xl ring-2 ring-white"
+          >
+            Reabrir depósito pendente
+          </button>
         )}
 
         {/* ====================================================================
