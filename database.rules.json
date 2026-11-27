@@ -94,7 +94,7 @@
           ".validate": "newData.isString() && newData.val().length > 0"
         },
         "amount": {
-          ".validate": "newData.isNumber() && newData.val() >= 35 && newData.val() <= 5000"
+          ".validate": "newData.isNumber() && newData.val() >= 15 && newData.val() <= 5000"
         },
         "status": {
           ".validate": "newData.val() === 'pending' || newData.val() === 'awaiting_payment' || newData.val() === 'paid' || newData.val() === 'rejected'"
@@ -117,7 +117,7 @@
             ".validate": "newData.isString() && newData.val() === $uid"
           },
           "amount": {
-            ".validate": "newData.isNumber() && newData.val() >= 35 && newData.val() <= 5000"
+            ".validate": "newData.isNumber() && newData.val() >= 15 && newData.val() <= 5000"
           },
           "status": {
             ".validate": "newData.val() === 'pending' || newData.val() === 'awaiting_payment' || newData.val() === 'paid' || newData.val() === 'rejected'"
