@@ -501,7 +501,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
       // A janela curta é confirmada também pelas regras do Realtime Database.
       try {
         const now = Date.now();
-        const profileIsNew = now - Number(profileData.createdAt || 0) <= 10 * 60 * 1000;
+        const profileIsNew = now - Number(profileData.createdAt || 0) <= 24 * 60 * 60 * 1000;
         const tokenResult = await getIdTokenResult(firebaseUser);
         const authTime = Number(tokenResult.claims.auth_time || 0) * 1000;
         const sessionIsNew = authTime > 0 && now - authTime <= 10 * 60 * 1000;
