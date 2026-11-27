@@ -495,6 +495,33 @@ function Dashboard({ firebaseUser, onSignOut }) {
     });
   }, [pixModalData?.requestId]);
 
+  // Histórico de depósitos confirmado pelo painel administrativo.
+  useEffect(() => {
+    if (!database || !firebaseUser?.uid) return undefined;
+    return onValue(ref(database, `depositHistory/${firebaseUser.uid}`), (snapshot) => {
+      const raw = snapshot.val() || {};
+      const history = Object.entries(raw).map(([id, item]) => ({
+        id,
+        amount: Number(item?.amount || 0),
+        status: 'Pago',
+        date: item?.confirmedAt ? new Date(Number(item.confirmedAt)).toLocaleString('pt-BR') : '—',
+        transactionId: item?.transactionId || ''
+      })).sort((a, b) => Number(b.confirmedAt || 0) - Number(a.confirmedAt || 0));
+      setDepositHistory(history);
+    }, (error) => {
+      console.error('Falha ao carregar histórico de depósitos:', error);
+    });
+  }, [firebaseUser.uid]);
+
+  useEffect(() => {
+    if (pixModalData?.status !== 'paid') return undefined;
+    showToast(`Depósito de ${formatBRL(pixModalData.amount)} confirmado com sucesso!`, 'success');
+    const timer = setTimeout(() => {
+      setPixModalData((current) => current?.requestId === pixModalData.requestId ? null : current);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [pixModalData?.status, pixModalData?.requestId]);
+
   // Mantém a carteira sincronizada em tempo real com os créditos do servidor.
   useEffect(() => {
     if (!database || !firebaseUser?.uid) return undefined;
@@ -504,7 +531,11 @@ function Dashboard({ firebaseUser, onSignOut }) {
         ? (snapshot.val() || {})
         : { withdrawableBalance: 0, lastCheckinAt: null, checkinCount: 0, signupBonusGranted: false };
       setWalletData(wallet);
-      setUser((prev) => ({ ...prev, withdrawableBalance: Number(wallet.withdrawableBalance || 0) }));
+      setUser((prev) => ({
+        ...prev,
+        withdrawableBalance: Number(wallet.withdrawableBalance || 0),
+        depositBalance: Number(wallet.depositBalance || 0)
+      }));
     }, () => {
       showToast('Não foi possível carregar sua carteira de recompensas.', 'error');
     });
@@ -2799,6 +2830,16 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   {formatBRL(pixModalData.amount)}
                 </div>
 
+                {pixModalData.code ? (
+                  <div className="mb-3 rounded-xl border border-slate-200 bg-white p-3">
+                    <img
+                      src={`https://quickchart.io/qr?text=${encodeURIComponent(pixModalData.code)}&size=220&margin=2`}
+                      alt="QR Code do PIX para pagamento"
+                      className="mx-auto h-52 w-52 max-w-full"
+                    />
+                    <p className="mt-2 text-center text-[10px] font-semibold text-slate-500">Escaneie o QR Code no aplicativo do banco</p>
+                  </div>
+                ) : null}
                 <div className="w-full rounded-xl border border-blue-100 bg-blue-50 p-3 text-center text-xs text-blue-900">
                   {pixModalData.code
                     ? 'Código PIX disponibilizado. Copie e pague no aplicativo do seu banco.'
@@ -2848,10 +2889,10 @@ function Dashboard({ firebaseUser, onSignOut }) {
                   ? 'bg-rose-950 text-white border-rose-800'
                   : toast.type === 'warning'
                   ? 'bg-amber-950 text-amber-100 border-amber-700'
-                  : 'bg-slate-900 text-white border-blue-500/40'
+                  : 'bg-emerald-950 text-white border-emerald-500/60'
               }`}
             >
-              <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>{toast.message}</span>
             </div>
           </div>
