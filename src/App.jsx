@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { equalTo, get, onValue, orderByChild, query, ref, runTransaction, set } from 'firebase/database';
+import { get, onValue, ref, runTransaction, set, update } from 'firebase/database';
 import { auth, database, firebaseConfigured } from './firebase';
 import AuthScreen from './AuthScreen.jsx';
 import AdminPanel from './AdminPanel.jsx';
@@ -485,8 +485,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
   // Mantém o pedido pendente recuperável mesmo quando o cliente fecha a janela ou atualiza o site.
   useEffect(() => {
     if (!database || !firebaseUser?.uid) return undefined;
-    const requestsQuery = query(ref(database, 'depositRequests'), orderByChild('uid'), equalTo(firebaseUser.uid));
-    return onValue(requestsQuery, (snapshot) => {
+    return onValue(ref(database, 'depositRequestsByUser/' + firebaseUser.uid), (snapshot) => {
       const raw = snapshot.val() || {};
       const pending = Object.entries(raw)
         .map(([id, request]) => ({ id, ...(request || {}) }))
@@ -775,13 +774,17 @@ function Dashboard({ firebaseUser, onSignOut }) {
     }
     try {
       const requestId = firebaseUser.uid + '_' + Date.now();
-      await set(ref(database, 'depositRequests/' + requestId), {
+      const requestData = {
         uid: firebaseUser.uid,
         email: firebaseUser.email || '',
         name: user.id || '',
         amount: Number(val.toFixed(2)),
         status: 'pending',
         createdAt: Date.now()
+      };
+      await update(ref(database), {
+        ['depositRequests/' + requestId]: requestData,
+        ['depositRequestsByUser/' + firebaseUser.uid + '/' + requestId]: requestData
       });
       const newRequest = { id: requestId, amount: val, code: '', status: 'pending' };
       setPendingDepositRequest(newRequest);
