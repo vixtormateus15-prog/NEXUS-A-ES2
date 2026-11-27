@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { get, onValue, ref, runTransaction, set } from 'firebase/database';
 import { auth, database, firebaseConfigured } from './firebase';
@@ -430,6 +430,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
   const [badges, setBadges] = useState(INITIAL_BADGES);
   const [depositHistory, setDepositHistory] = useState([]);
   const [withdrawHistory, setWithdrawHistory] = useState([]);
+  const knownDepositHistoryIds = useRef(null);
   const [couponLogs, setCouponLogs] = useState([
     {
       id: 1,
@@ -504,9 +505,18 @@ function Dashboard({ firebaseUser, onSignOut }) {
         id,
         amount: Number(item?.amount || 0),
         status: 'Pago',
+        confirmedAt: Number(item?.confirmedAt || 0),
         date: item?.confirmedAt ? new Date(Number(item.confirmedAt)).toLocaleString('pt-BR') : '—',
         transactionId: item?.transactionId || ''
-      })).sort((a, b) => Number(b.confirmedAt || 0) - Number(a.confirmedAt || 0));
+      })).sort((a, b) => b.confirmedAt - a.confirmedAt);
+      const currentIds = new Set(history.map((item) => item.id));
+      if (knownDepositHistoryIds.current !== null) {
+        const newlyConfirmed = history.find((item) => !knownDepositHistoryIds.current.has(item.id));
+        if (newlyConfirmed) {
+          showToast(`Depósito de ${formatBRL(newlyConfirmed.amount)} concluído com sucesso!`, 'success');
+        }
+      }
+      knownDepositHistoryIds.current = currentIds;
       setDepositHistory(history);
     }, (error) => {
       console.error('Falha ao carregar histórico de depósitos:', error);
@@ -515,7 +525,6 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
   useEffect(() => {
     if (pixModalData?.status !== 'paid') return undefined;
-    showToast(`Depósito de ${formatBRL(pixModalData.amount)} confirmado com sucesso!`, 'success');
     const timer = setTimeout(() => {
       setPixModalData((current) => current?.requestId === pixModalData.requestId ? null : current);
     }, 3500);
