@@ -153,7 +153,15 @@ export default function AdminPanel({ firebaseUser }) {
         }, { applyLocally: false });
         if (!refundResult.snapshot.child('withdrawalRefunds').child(selected.id).exists()) throw new Error('O estorno não foi confirmado. O pedido continua sem alteração.');
       }
-      if (selected._type === 'withdrawal' && status === 'rejected' && selected.status === 'paid') throw new Error('Um saque já marcado como pago não pode ser recusado.');
+      if (selected._type === 'withdrawal') {
+        const walletRef = ref(database, 'wallets/' + selected.uid);
+        await runTransaction(walletRef, (current) => {
+          const wallet = current || {};
+          const reservations = wallet.withdrawalReservations || {};
+          if (!reservations[selected.id]) return wallet;
+          return { ...wallet, withdrawalReservations: { ...reservations, [selected.id]: { ...reservations[selected.id], status, updatedAt: Date.now() } } };
+        }, { applyLocally: false });
+      }
       if (selected._type === 'deposit' && status === 'paid') {
         const walletRef = ref(database, 'wallets/' + selected.uid);
         const amount = Number(Number(selected.amount || 0).toFixed(2));
