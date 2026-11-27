@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { get, onValue, ref, set } from 'firebase/database';
-import { auth, database, firebaseConfigured, functions } from './firebase';
-import { httpsCallable } from 'firebase/functions';
+import { get, onValue, ref, runTransaction, set } from 'firebase/database';
+import { auth, database, firebaseConfigured } from './firebase';
 import AuthScreen from './AuthScreen.jsx';
 import {
   Menu,
@@ -622,27 +621,34 @@ function Dashboard({ firebaseUser, onSignOut }) {
     showToast(`+${formatBRL(earned)} creditado em "Pode ser retirado"!`, 'success');
   };
 
+  // O Realtime Database valida no servidor o intervalo mínimo de 24 horas
+  // e permite somente o acréscimo fixo de R$ 1,00 nesta carteira.
   const handleDailyCheckin = async () => {
-    if (!functions || checkinBusy) return;
+    if (!database || !firebaseUser?.uid || checkinBusy) return;
     setCheckinBusy(true);
     try {
-      const claim = httpsCallable(functions, 'claimDailyCheckin');
-      const response = await claim();
-      const result = response.data || {};
-      if (result.alreadyClaimed) {
-        showToast('Você já realizou o check-in de hoje. Volte amanhã!', 'info');
-      } else {
-        showToast('Check-in confirmado! R$ 1,00 foi creditado na sua carteira.', 'success');
+      const walletRef = ref(database, `wallets/${firebaseUser.uid}`);
+      const result = await runTransaction(walletRef, (current) => {
+        const wallet = current || {};
+        const lastCheckinAt = Number(wallet.lastCheckinAt || 0);
+        if (lastCheckinAt && Date.now() - lastCheckinAt < 24 * 60 * 60 * 1000) return;
+        return {
+          withdrawableBalance: Number((Number(wallet.withdrawableBalance || 0) + 1).toFixed(2)),
+          checkinCount: Number(wallet.checkinCount || 0) + 1,
+          lastCheckinAt: Date.now()
+        };
+      }, { applyLocally: false });
+
+      if (!result.committed) {
+        showToast('Você já realizou o check-in nas últimas 24 horas. Volte depois!', 'info');
+        return;
       }
-      if (result.wallet) {
-        setWalletData(result.wallet);
-        setUser((prev) => ({ ...prev, withdrawableBalance: Number(result.wallet.withdrawableBalance || 0) }));
-      }
+      const wallet = result.snapshot.val() || {};
+      setWalletData(wallet);
+      setUser((prev) => ({ ...prev, withdrawableBalance: Number(wallet.withdrawableBalance || 0) }));
+      showToast('Check-in confirmado! R$ 1,00 foi adicionado ao saldo interno.', 'success');
     } catch (error) {
-      const message = error?.code === 'functions/failed-precondition'
-        ? 'O check-in de hoje já foi realizado.'
-        : 'Não foi possível concluir o check-in. Tente novamente.';
-      showToast(message, 'error');
+      showToast('Não foi possível concluir o check-in. Aguarde e tente novamente.', 'error');
     } finally {
       setCheckinBusy(false);
     }
@@ -1714,14 +1720,14 @@ function Dashboard({ firebaseUser, onSignOut }) {
               <div>
                 <div className="text-[10px] font-extrabold tracking-[.18em] text-emerald-200">RECOMPENSA DIÁRIA</div>
                 <h3 className="mt-1 text-lg font-black">Check-in diário</h3>
-                <p className="mt-1 text-xs text-emerald-100/85">Faça seu check-in uma vez por dia e receba R$ 1,00.</p>
+                <p className="mt-1 text-xs text-emerald-100/85">Faça seu check-in gratuito a cada 24 horas e receba R$ 1,00 em saldo interno.</p>
               </div>
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-200/40 bg-white/10"><CheckCircle2 className="h-7 w-7 text-emerald-200" /></div>
             </div>
             <div className="relative mt-4 flex items-center justify-between gap-3">
-              <div><div className="text-2xl font-black">R$ 1,00</div><div className="text-[10px] text-emerald-100/70">Crédito na carteira de saque</div></div>
-              <button type="button" onClick={handleDailyCheckin} disabled={checkinBusy || !functions || walletData.lastCheckinDate === new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())} className="rounded-xl bg-white px-4 py-3 text-xs font-black text-emerald-900 shadow-md transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60">
-                {checkinBusy ? 'Confirmando...' : walletData.lastCheckinDate === new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) ? 'Check-in realizado' : 'Fazer check-in'}
+              <div><div className="text-2xl font-black">R$ 1,00</div><div className="text-[10px] text-emerald-100/70">Crédito no saldo interno</div></div>
+              <button type="button" onClick={handleDailyCheckin} disabled={checkinBusy || !database || (Number(walletData.lastCheckinAt || 0) > 0 && Date.now() - Number(walletData.lastCheckinAt) < 24 * 60 * 60 * 1000)} className="rounded-xl bg-white px-4 py-3 text-xs font-black text-emerald-900 shadow-md transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60">
+                {checkinBusy ? 'Confirmando...' : (Number(walletData.lastCheckinAt || 0) > 0 && Date.now() - Number(walletData.lastCheckinAt) < 24 * 60 * 60 * 1000) ? 'Check-in realizado' : 'Fazer check-in'}
               </button>
             </div>
             <div className="relative mt-3 flex items-center justify-between border-t border-white/15 pt-3 text-[10px] text-emerald-100/80"><span>Check-ins acumulados: {Number(walletData.checkinCount || 0)}</span><span>Saldo de recompensas: {formatBRL(user.withdrawableBalance)}</span></div>
