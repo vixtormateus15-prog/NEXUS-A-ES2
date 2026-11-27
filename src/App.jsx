@@ -1308,7 +1308,7 @@ function Dashboard({ firebaseUser, onSignOut }) {
     // SUB-PÁGINA: MÉTODO DE SAQUE (CHAVE PIX)
     // ------------------------------------------------------------------------
     if (subPage === 'pix-method') {
-      const pixTypes = ['CPF', 'Telefone', 'CNPJ', 'E-mail', 'Chave aleatória'];
+      const pixTypes = ['CPF', 'E-mail', 'Telefone'];
       return (
         <div className="space-y-3">
           <button
