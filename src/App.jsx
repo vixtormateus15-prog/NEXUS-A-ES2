@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getIdTokenResult, onAuthStateChanged, signOut } from 'firebase/auth';
-import { get, onValue, ref, runTransaction, set, update } from 'firebase/database';
+import { get, onValue, push, ref, runTransaction, set, update } from 'firebase/database';
 import { auth, database, firebaseConfigured } from './firebase';
 import AuthScreen from './AuthScreen.jsx';
 import AdminPanel from './AdminPanel.jsx';
@@ -3325,6 +3325,31 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
 // Autenticação real: o painel só é exibido após sessão Firebase válida.
 export default function App() {
+  // Mede visitas ao site com identificador aleatório local, sem coletar nome, e-mail ou IP.
+  useEffect(() => {
+    if (!database) return;
+    try {
+      if (sessionStorage.getItem('nexus_access_recorded')) return;
+      let visitorId = localStorage.getItem('nexus_visitor_id');
+      const isReturning = Boolean(visitorId);
+      if (!visitorId) {
+        visitorId = window.crypto?.randomUUID?.() || ('v_' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+        localStorage.setItem('nexus_visitor_id', visitorId);
+      }
+      const eventRef = push(ref(database, 'siteAccessEvents'));
+      set(eventRef, {
+        visitorId,
+        visitType: isReturning ? 'returning' : 'new',
+        path: window.location.pathname || '/',
+        referrer: document.referrer ? (() => { try { return new URL(document.referrer).hostname; } catch { return ''; } })() : '',
+        createdAt: Date.now()
+      }).then(() => sessionStorage.setItem('nexus_access_recorded', '1'))
+        .catch((error) => console.warn('Não foi possível registrar a visita:', error));
+    } catch (error) {
+      console.warn('Contagem de visitas indisponível neste navegador:', error);
+    }
+  }, []);
+
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
 
