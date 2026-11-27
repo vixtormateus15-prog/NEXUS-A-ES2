@@ -3148,12 +3148,20 @@ function Dashboard({ firebaseUser, onSignOut }) {
 
                 {pixModalData.code ? (
                   <div className="mb-4 w-full rounded-3xl border-2 border-blue-100 bg-white p-4 shadow-lg shadow-blue-900/10">
-                    <div className="mx-auto flex min-h-72 w-full max-w-[18rem] items-center justify-center rounded-2xl bg-white p-2">
+                    <div className="relative mx-auto flex min-h-72 w-full max-w-[18rem] items-center justify-center overflow-hidden rounded-2xl bg-white p-2">
                       <img
                         src={`https://quickchart.io/qr?text=${encodeURIComponent(pixModalData.code)}&size=320&margin=2`}
                         alt="QR Code do PIX para pagamento"
-                        className="mx-auto h-64 w-64 max-w-full object-contain"
+                        className={`mx-auto h-64 w-64 max-w-full object-contain transition-opacity duration-300 ${pixModalData.status === 'paid' ? 'opacity-35' : 'opacity-100'}`}
                       />
+                      {pixModalData.status === 'paid' && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-emerald-50/75 px-3 text-center backdrop-blur-[2px]">
+                          <div className="rounded-2xl border-2 border-emerald-500 bg-white/95 px-5 py-4 shadow-2xl shadow-emerald-900/20">
+                            <CheckCircle2 className="mx-auto mb-2 h-12 w-12 text-emerald-600" />
+                            <div className="text-2xl font-black leading-tight text-emerald-700 sm:text-3xl">Depósito Aprovado</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <p className="mt-3 text-center text-sm font-extrabold text-blue-950">Escaneie o QR Code com o aplicativo do seu banco</p>
                   </div>
@@ -3180,7 +3188,6 @@ function Dashboard({ firebaseUser, onSignOut }) {
                       Copiar
                     </button>
                   </div>
-                  {pixModalData.status === 'paid' ? <div className="mt-4 flex w-full items-center gap-3 rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-4 text-left shadow-sm"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md"><Check className="h-7 w-7 stroke-[3]" /></div><div><div className="text-base font-black uppercase tracking-wide text-emerald-700">Depósito Aprovado</div><div className="mt-0.5 text-xs font-semibold text-emerald-700">Pagamento conferido e confirmado pela administração.</div></div></div> : null}
                   {pixModalData.status === 'rejected' ? <p className="mt-3 text-xs font-bold text-rose-700">Pedido de depósito recusado. Entre em contato com o suporte.</p> : null}
                 </div>
               </div>
