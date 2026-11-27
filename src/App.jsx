@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { get, ref, set } from 'firebase/database';
+import { get, onValue, ref, set } from 'firebase/database';
 import { auth, database, firebaseConfigured, functions } from './firebase';
 import { httpsCallable } from 'firebase/functions';
 import AuthScreen from './AuthScreen.jsx';
@@ -451,21 +451,18 @@ function Dashboard({ firebaseUser, onSignOut }) {
     return () => { active = false; };
   }, [firebaseUser.uid]);
 
-  // Carrega a carteira gerenciada exclusivamente pelas Cloud Functions.
+  // Mantém a carteira sincronizada em tempo real com os créditos do servidor.
   useEffect(() => {
     if (!database || !firebaseUser?.uid) return undefined;
-    let active = true;
-    get(ref(database, `wallets/${firebaseUser.uid}`))
-      .then((snapshot) => {
-        if (!active || !snapshot.exists()) return;
-        const wallet = snapshot.val() || {};
-        setWalletData(wallet);
-        setUser((prev) => ({ ...prev, withdrawableBalance: Number(wallet.withdrawableBalance || 0) }));
-      })
-      .catch(() => {
-        if (active) showToast('Não foi possível carregar sua carteira de recompensas.', 'error');
-      });
-    return () => { active = false; };
+    const walletRef = ref(database, `wallets/${firebaseUser.uid}`);
+    return onValue(walletRef, (snapshot) => {
+      if (!snapshot.exists()) return;
+      const wallet = snapshot.val() || {};
+      setWalletData(wallet);
+      setUser((prev) => ({ ...prev, withdrawableBalance: Number(wallet.withdrawableBalance || 0) }));
+    }, () => {
+      showToast('Não foi possível carregar sua carteira de recompensas.', 'error');
+    });
   }, [firebaseUser.uid]);
 
   const showProfileError = () => {
