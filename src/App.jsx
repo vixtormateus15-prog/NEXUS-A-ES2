@@ -590,6 +590,28 @@ function Dashboard({ firebaseUser, onSignOut }) {
     });
   }, [pixModalData?.requestId]);
 
+  // Detecta a aprovação pelo histórico: o painel remove o pedido pendente
+  // na mesma operação em que grava o depósito confirmado.
+  useEffect(() => {
+    if (!database || !firebaseUser?.uid || !pixModalData?.requestId) return undefined;
+    const requestId = pixModalData.requestId;
+    return onValue(ref(database, `depositHistory/${firebaseUser.uid}/${requestId}`), (snapshot) => {
+      if (!snapshot.exists()) return;
+      const confirmed = snapshot.val() || {};
+      if (confirmed.status === 'paid') {
+        setPixModalData((current) => current?.requestId === requestId
+          ? {
+              ...current,
+              amount: Number(confirmed.amount || current.amount || 0),
+              status: 'paid'
+            }
+          : current);
+      }
+    }, (error) => {
+      console.error('Falha ao acompanhar confirmação do depósito:', error);
+    });
+  }, [firebaseUser.uid, pixModalData?.requestId]);
+
   // Histórico de saques sincronizado com os pedidos enviados ao painel.
   useEffect(() => {
     if (!database || !firebaseUser?.uid) return undefined;
