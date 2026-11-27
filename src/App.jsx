@@ -219,14 +219,14 @@ const PLATFORM_GUIDE_STEPS = [
   {
     step: 3,
     title: 'Como Comprar um Plano de Ações',
-    desc: 'Escolha um plano na vitrine (ex: NEXUS START), confira o rendimento diário e o ciclo em dias. Ao confirmar, o valor é debitado do seu Saldo.',
+    desc: 'Escolha um plano na vitrine, confira os valores projetados e envie o pedido. O administrador confere o saldo e aprova a ativação pelo painel.',
     highlight: 'Planos a partir de R$ 35,00'
   },
   {
     step: 4,
     title: 'Como Adicionar Saldo (PIX)',
     desc: 'Toque no botão central "Depositar", escolha um valor rápido ou digite entre R$ 35,00 e R$ 5.000,00 e consulte as condições de crédito disponíveis.',
-    highlight: 'Compensação Automática'
+    highlight: 'Confirmação Manual'
   },
   {
     step: 5,
@@ -236,9 +236,9 @@ const PLATFORM_GUIDE_STEPS = [
   },
   {
     step: 6,
-    title: 'Como Coletar o Rendimento',
-    desc: 'A cada 24 horas o ciclo diário é concluído. Toque em "Acelerar rendimento / Injetar Pontos" para liberar o lucro direto para seu saldo de saque.',
-    highlight: 'Liquidez Diária'
+    title: 'Como acompanhar os valores previstos',
+    desc: 'Os valores exibidos são projeções ilustrativas. Não há crédito automático: a administração confere cada pagamento e registra manualmente apenas os valores efetivamente pagos.',
+    highlight: 'Créditos Manuais'
   },
   {
     step: 7,
