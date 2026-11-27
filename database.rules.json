@@ -106,6 +106,30 @@
           ".validate": true
         }
       }
+    },
+    "depositRequestsByUser": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'vixtormateus15@gmail.com')",
+        "$requestId": {
+          ".write": "auth != null && (auth.token.email === 'vixtormateus15@gmail.com' || (!data.exists() && auth.uid === $uid && newData.child('uid').val() === auth.uid && newData.child('status').val() === 'pending'))",
+          ".validate": "newData.hasChildren(['uid','amount','status','createdAt'])",
+          "uid": {
+            ".validate": "newData.isString() && newData.val() === $uid"
+          },
+          "amount": {
+            ".validate": "newData.isNumber() && newData.val() >= 35 && newData.val() <= 5000"
+          },
+          "status": {
+            ".validate": "newData.val() === 'pending' || newData.val() === 'awaiting_payment' || newData.val() === 'paid' || newData.val() === 'rejected'"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && newData.val() <= now"
+          },
+          "$other": {
+            ".validate": true
+          }
+        }
+      }
     }
   }
 }
