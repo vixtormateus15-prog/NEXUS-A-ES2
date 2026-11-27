@@ -17,6 +17,12 @@
         },
         "$other": {
           ".validate": false
+        },
+        "inviteCode": {
+          ".validate": "newData.isString() && newData.val().matches(/^NX[A-Z0-9]{8}$/)"
+        },
+        "referrerUid": {
+          ".validate": "newData.isString() && newData.val().length <= 128 && (!data.exists() || newData.val() === data.val())"
         }
       },
       ".read": "auth != null && auth.token.email === 'vixtormateus15@gmail.com'"
@@ -62,14 +68,30 @@
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'vixtormateus15@gmail.com')",
         ".write": "auth != null && auth.uid === $uid && newData.exists() && newData.hasChildren(['uid','cpf','holderName','pixKeyType','pixKey','createdAt']) && newData.child('uid').val() === $uid && (!data.exists() || (newData.child('cpf').val() === data.child('cpf').val() && newData.child('holderName').val() === data.child('holderName').val() && newData.child('createdAt').val() === data.child('createdAt').val()))",
-        "uid": { ".validate": "newData.isString() && newData.val() === $uid" },
-        "cpf": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{11}$/)" },
-        "holderName": { ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 120" },
-        "pixKeyType": { ".validate": "newData.val() === 'CPF' || newData.val() === 'E-mail' || newData.val() === 'Telefone'" },
-        "pixKey": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
-        "createdAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
-        "updatedAt": { ".validate": "newData.isNumber() && newData.val() <= now" },
-        "$other": { ".validate": false }
+        "uid": {
+          ".validate": "newData.isString() && newData.val() === $uid"
+        },
+        "cpf": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{11}$/)"
+        },
+        "holderName": {
+          ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 120"
+        },
+        "pixKeyType": {
+          ".validate": "newData.val() === 'CPF' || newData.val() === 'E-mail' || newData.val() === 'Telefone'"
+        },
+        "pixKey": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "withdrawalRequests": {
@@ -203,6 +225,49 @@
           },
           "$other": {
             ".validate": true
+          }
+        }
+      }
+    },
+    "inviteCodes": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === newData.child('uid').val() && !data.exists()",
+        ".validate": "newData.hasChildren(['uid','createdAt'])",
+        "uid": {
+          ".validate": "newData.isString() && newData.val() === auth.uid"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "referralsBySponsor": {
+      "$sponsorUid": {
+        ".read": "auth != null && auth.uid === $sponsorUid",
+        "$memberUid": {
+          ".write": "auth != null && auth.uid === $memberUid && !data.exists() && newData.child('memberUid').val() === auth.uid && newData.child('sponsorUid').val() === $sponsorUid && root.child('profiles').child(auth.uid).child('referrerUid').val() === $sponsorUid && root.child('inviteCodes').child(newData.child('referralCode').val()).child('uid').val() === $sponsorUid",
+          ".validate": "newData.hasChildren(['memberUid','sponsorUid','referralCode','displayName','createdAt'])",
+          "memberUid": {
+            ".validate": "newData.isString() && newData.val() === auth.uid"
+          },
+          "sponsorUid": {
+            ".validate": "newData.isString() && newData.val() === $sponsorUid"
+          },
+          "referralCode": {
+            ".validate": "newData.isString() && newData.val().matches(/^NX[A-Z0-9]{8}$/)"
+          },
+          "displayName": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && newData.val() <= now"
+          },
+          "$other": {
+            ".validate": false
           }
         }
       }
