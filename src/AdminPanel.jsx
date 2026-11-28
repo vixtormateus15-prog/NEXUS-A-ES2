@@ -63,7 +63,7 @@ export default function AdminPanel({ firebaseUser }) {
   const [supportBusy,setSupportBusy] = useState(false);
   const [supportReadAt,setSupportReadAt] = useState({});
   const seenSupportMessageIds = useRef(new Set());
-  const supportMessagesInitialized = useRef(false);
+  const supportInitialSnapshotLoaded = useRef(false);
   const isAdmin = String(firebaseUser?.email || '').toLowerCase() === ADMIN_EMAIL;
 
   useEffect(() => {
@@ -109,6 +109,10 @@ export default function AdminPanel({ firebaseUser }) {
         const raw=snap.val()||{};
         const rows=Object.entries(raw).map(([uid,thread])=>({uid,profile:thread?.profile||{},messages:Object.entries(thread?.messages||{}).map(([id,msg])=>({id,...(msg||{})})).sort((a,b)=>Number(a.createdAt||0)-Number(b.createdAt||0))}));
         rows.sort((a,b)=>Number(b.messages.at(-1)?.createdAt||b.profile.createdAt||0)-Number(a.messages.at(-1)?.createdAt||a.profile.createdAt||0));
+        if (!supportInitialSnapshotLoaded.current) {
+          rows.forEach(thread => thread.messages.forEach(msg => seenSupportMessageIds.current.add(msg.id)));
+          supportInitialSnapshotLoaded.current = true;
+        }
         setSupportThreads(rows);
       },()=>setNotice('Falha ao carregar as conversas do suporte. Confira as regras do Firebase.')));
       subscribe('profiles',setProfiles);
@@ -156,7 +160,6 @@ export default function AdminPanel({ firebaseUser }) {
         seenSupportMessageIds.current.add(msg.id);
       }
     }));
-    if (!supportMessagesInitialized.current) { supportMessagesInitialized.current = true; return; }
     if (incoming.length) {
       const newest = incoming[incoming.length - 1];
       setNotice('Nova mensagem no suporte de ' + (newest.thread.profile.displayName || newest.thread.profile.email || 'um cliente') + '. Abra a conversa para responder.');
