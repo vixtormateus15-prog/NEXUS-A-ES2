@@ -156,7 +156,7 @@ export default function AdminPanel({ firebaseUser }) {
     const incoming = [];
     supportThreads.forEach(thread => thread.messages.forEach(msg => {
       if (!seenSupportMessageIds.current.has(msg.id)) {
-        if (supportMessagesInitialized.current && msg.senderRole !== 'admin') incoming.push({thread,msg});
+        if (supportInitialSnapshotLoaded.current && msg.senderRole !== 'admin') incoming.push({thread,msg});
         seenSupportMessageIds.current.add(msg.id);
       }
     }));
