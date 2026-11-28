@@ -123,3 +123,22 @@ button, input, select, textarea { font: inherit; }
   .admin-panel { font-size: 16px; }
   .admin-panel main, .admin-panel section, .admin-panel article { scroll-margin-top: 5rem; }
 }
+
+
+/* Suporte administrativo: tipografia ampliada e contraste alto. */
+.admin-panel { font-size: 17px; }
+.admin-panel .text-slate-100,
+.admin-panel .text-slate-200,
+.admin-panel .text-slate-300,
+.admin-panel .text-slate-400,
+.admin-panel .text-slate-500 { color: #fff !important; }
+.admin-panel input,
+.admin-panel textarea,
+.admin-panel select { font-size: 17px; }
+.admin-panel textarea { line-height: 1.55; }
+@media (max-width: 640px) {
+  .admin-panel { font-size: 16px; }
+  .admin-panel input,
+  .admin-panel textarea,
+  .admin-panel select { font-size: 16px; }
+}
