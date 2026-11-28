@@ -148,7 +148,6 @@ export default function AdminPanel({ firebaseUser }) {
 
 
   useEffect(() => {
-    if (!supportThreads.length) return;
     const incoming = [];
     supportThreads.forEach(thread => thread.messages.forEach(msg => {
       if (!seenSupportMessageIds.current.has(msg.id)) {
@@ -191,7 +190,7 @@ export default function AdminPanel({ firebaseUser }) {
   const pendingDeposits=visibleDeposits.filter(x=>x.status==='pending' || x.status==='awaiting_payment');
   const pendingWithdrawals=withdrawals.filter(x=>x.status==='pending');
   const pendingInvestmentRequests=investmentRequests.filter(x=>x.status==='pending');
-  const unreadSupportThreads = supportThreads.filter(thread => thread.messages.at(-1)?.senderRole !== 'admin');
+  const unreadSupportThreads = supportThreads.filter(thread => thread.messages.length > 0 && thread.messages.at(-1)?.senderRole !== 'admin');
   const supportUnreadCount = unreadSupportThreads.length;
   const openSupportThread = (uid) => { setSelectedSupportUid(uid); setSection('support'); setMobileNav(false); };
   const depositTotal=visibleDeposits.filter(x=>x.status==='paid').reduce((n,x)=>n+Number(x.amount||0),0);
@@ -590,7 +589,7 @@ export default function AdminPanel({ firebaseUser }) {
               <div className="flex items-center gap-2"><span className="rounded-full bg-rose-500 px-3 py-1.5 text-sm font-black text-white">{supportUnreadCount} não lida(s)</span><button onClick={()=>{if(typeof Notification!=='undefined' && Notification.permission!=='granted') Notification.requestPermission().then(p=>setNotice(p==='granted'?'Notificações do navegador ativadas.':'Permissão de notificação não concedida.')); else setNotice('As notificações do navegador já estão ativadas ou não são suportadas.');}} className="rounded-xl border border-white/20 px-3 py-2 text-sm font-bold text-white hover:bg-white/10">Ativar alertas</button></div>
             </div>
             <div className="divide-y divide-white/10">
-              {supportThreads.length===0?<p className="p-6 text-base text-white">Nenhuma conversa iniciada ainda.</p>:supportThreads.slice(0,8).map(thread=>{const last=thread.messages.at(-1);const unread=last?.senderRole!=='admin';const profile=profiles.find(p=>p.id===thread.uid)||{};const wallet=wallets.find(w=>w.id===thread.uid)||{};return <button key={thread.uid} onClick={()=>openSupportThread(thread.uid)} className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-white/5">
+              {supportThreads.length===0?<p className="p-6 text-base text-white">Nenhuma conversa iniciada ainda.</p>:supportThreads.slice(0,8).map(thread=>{const last=thread.messages.at(-1);const unread=Boolean(last && last.senderRole!=='admin');const profile=profiles.find(p=>p.id===thread.uid)||{};const wallet=wallets.find(w=>w.id===thread.uid)||{};return <button key={thread.uid} onClick={()=>openSupportThread(thread.uid)} className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-white/5">
                 <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-base font-extrabold text-white sm:text-lg">{thread.profile.displayName||profile.displayName||profile.name||last?.senderName||'Cliente NEXUS'}</p>{unread?<span className="rounded-full bg-rose-500 px-2.5 py-1 text-xs font-black text-white">NOVA MENSAGEM</span>:null}</div><p className="mt-1 truncate text-sm text-white">{last?.text||'Conversa iniciada'}</p><p className="mt-1 truncate text-xs text-slate-200">{thread.profile.email||profile.email||thread.uid} · Saldo sacável: {money(wallet.withdrawableBalance)} · Depósito: {money(wallet.depositBalance)}</p></div><div className="shrink-0 text-right"><p className="text-xs text-slate-200">{date(last?.createdAt)}</p><span className="mt-2 inline-flex items-center gap-1 rounded-lg bg-cyan-400 px-3 py-2 text-sm font-black text-slate-950">Responder <Send size={14}/></span></div>
               </button>})}
             </div>
