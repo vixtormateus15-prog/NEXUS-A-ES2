@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { onValue, push, ref, runTransaction, set, update } from 'firebase/database';
 import { signOut } from 'firebase/auth';
 import { auth, database } from './firebase';
@@ -61,6 +61,8 @@ export default function AdminPanel({ firebaseUser }) {
   const [supportMessages,setSupportMessages] = useState([]);
   const [supportReply,setSupportReply] = useState('');
   const [supportBusy,setSupportBusy] = useState(false);
+  const seenSupportMessageIds = useRef(new Set());
+  const supportMessagesInitialized = useRef(false);
   const isAdmin = String(firebaseUser?.email || '').toLowerCase() === ADMIN_EMAIL;
 
   useEffect(() => {
@@ -144,6 +146,40 @@ export default function AdminPanel({ firebaseUser }) {
     finally{setSupportBusy(false);}
   };
 
+
+  useEffect(() => {
+    if (!supportThreads.length) return;
+    const incoming = [];
+    supportThreads.forEach(thread => thread.messages.forEach(msg => {
+      if (!seenSupportMessageIds.current.has(msg.id)) {
+        if (supportMessagesInitialized.current && msg.senderRole !== 'admin') incoming.push({thread,msg});
+        seenSupportMessageIds.current.add(msg.id);
+      }
+    }));
+    if (!supportMessagesInitialized.current) { supportMessagesInitialized.current = true; return; }
+    if (incoming.length) {
+      const newest = incoming[incoming.length - 1];
+      setNotice('Nova mensagem no suporte de ' + (newest.thread.profile.displayName || newest.thread.profile.email || 'um cliente') + '. Abra a conversa para responder.');
+      try {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          new Notification('Nova mensagem · NEXUS AÇÕES', {body:(newest.thread.profile.displayName || 'Cliente') + ': ' + String(newest.msg.text || 'Enviou uma mensagem').slice(0,120),tag:'nexus-support-' + newest.thread.uid});
+        }
+      } catch (error) { console.warn('Notificação do suporte indisponível:',error); }
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          const audio = new AudioContextClass();
+          const oscillator = audio.createOscillator();
+          const gain = audio.createGain();
+          oscillator.connect(gain); gain.connect(audio.destination);
+          oscillator.frequency.value = 880; gain.gain.value = 0.08;
+          oscillator.start(); oscillator.stop(audio.currentTime + 0.18);
+          oscillator.onended = () => audio.close();
+        }
+      } catch (error) { console.warn('Alerta sonoro indisponível:',error); }
+    }
+  }, [supportThreads]);
+
   // Pedidos de depósito recusados antigos também ficam ocultos da fila.
   const visibleDeposits = deposits.filter((item) => item.status !== 'rejected');
   const all = section === 'deposits' ? visibleDeposits : withdrawals;
@@ -155,6 +191,9 @@ export default function AdminPanel({ firebaseUser }) {
   const pendingDeposits=visibleDeposits.filter(x=>x.status==='pending' || x.status==='awaiting_payment');
   const pendingWithdrawals=withdrawals.filter(x=>x.status==='pending');
   const pendingInvestmentRequests=investmentRequests.filter(x=>x.status==='pending');
+  const unreadSupportThreads = supportThreads.filter(thread => thread.messages.at(-1)?.senderRole !== 'admin');
+  const supportUnreadCount = unreadSupportThreads.length;
+  const openSupportThread = (uid) => { setSelectedSupportUid(uid); setSection('support'); setMobileNav(false); };
   const depositTotal=visibleDeposits.filter(x=>x.status==='paid').reduce((n,x)=>n+Number(x.amount||0),0);
   const paidWithdrawals=withdrawals.filter(x=>x.status==='paid').reduce((n,x)=>n+Number(x.amount||0),0);
   const selectedTitle=selected ? (selected.name || selected.email || selected.uid || selected.id) : '';
@@ -509,7 +548,7 @@ export default function AdminPanel({ firebaseUser }) {
 
   const nav=<div className="flex h-full flex-col">
     <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5"><div className="rounded-xl bg-cyan-400/15 p-2.5 text-cyan-300"><ShieldCheck size={24}/></div><div><p className="text-[10px] font-black tracking-[.25em] text-cyan-300">NEXUS AÇÕES</p><p className="text-lg font-black">Central Admin</p></div></div>
-    <nav className="flex-1 space-y-1 p-3">{NAV.map(([id,label,Icon])=><button key={id} onClick={()=>{setSection(id);setSelected(null);setMobileNav(false);setSearch('');setFilter('all');}} className={'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition '+(section===id?'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950/30':'text-slate-200 hover:bg-white/5 hover:text-white')}><Icon size={18}/>{label}{id==='deposits' && pendingDeposits.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingDeposits.length}</span> : null}{id==='withdrawals' && pendingWithdrawals.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingWithdrawals.length}</span> : null}{id==='investment-requests' && pendingInvestmentRequests.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingInvestmentRequests.length}</span> : null}</button>)}</nav>
+    <nav className="flex-1 space-y-1 p-3">{NAV.map(([id,label,Icon])=><button key={id} onClick={()=>{setSection(id);setSelected(null);setMobileNav(false);setSearch('');setFilter('all');}} className={'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition '+(section===id?'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-950/30':'text-slate-200 hover:bg-white/5 hover:text-white')}><Icon size={18}/>{label}{id==='deposits' && pendingDeposits.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingDeposits.length}</span> : null}{id==='withdrawals' && pendingWithdrawals.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingWithdrawals.length}</span> : null}{id==='investment-requests' && pendingInvestmentRequests.length>0 ? <span className="ml-auto rounded-full bg-amber-300 px-2 py-0.5 text-[10px] font-black text-slate-950">{pendingInvestmentRequests.length}</span> : null}{id==='support' && supportUnreadCount>0 ? <span className="ml-auto animate-pulse rounded-full bg-rose-500 px-2 py-0.5 text-[11px] font-black text-white">{supportUnreadCount}</span> : null}</button>)}</nav>
     <div className="border-t border-white/10 p-4"><p className="truncate text-xs text-slate-200">{firebaseUser.email}</p><button onClick={()=>signOut(auth)} className="mt-3 flex w-full items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5"><LogOut size={16}/> Sair da conta</button></div>
   </div>;
 
