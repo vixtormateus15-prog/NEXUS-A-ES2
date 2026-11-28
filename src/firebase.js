@@ -19,3 +19,4 @@ export const app = configured ? (getApps().length ? getApps()[0] : initializeApp
 export const auth = app ? getAuth(app) : null;
 export const database = app && firebaseConfig.databaseURL ? getDatabase(app) : null;
 export const firebaseConfigured = configured;
+export const firebaseConfigPublic = firebaseConfig;
