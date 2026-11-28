@@ -3,11 +3,11 @@ const {initializeApp}=require('firebase-admin/app');
 const {getDatabase}=require('firebase-admin/database');
 const {getMessaging}=require('firebase-admin/messaging');
 
-initializeApp();
+initializeApp({databaseURL:'https://nexus-acoes-default-rtdb.firebaseio.com'});
 
 exports.notifyCustomerOfSupportReply=onValueCreated({
   ref:'/supportChats/{uid}/messages/{messageId}',
-  region:'southamerica-east1',
+  region:'us-central1',
   retry:true,
 },async(event)=>{
   const message=event.data.val()||{};
