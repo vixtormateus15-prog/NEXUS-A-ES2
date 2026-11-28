@@ -371,6 +371,28 @@
           ".validate": false
         }
       }
+    },
+    "pushTokens": {
+      ".read": false,
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "$tokenKey": {
+          ".validate": "newData.hasChildren(['token','updatedAt'])",
+          "token": {
+            ".validate": "newData.isString() && newData.val().length >= 20 && newData.val().length <= 4096"
+          },
+          "updatedAt": {
+            ".validate": "newData.isNumber() && newData.val() <= now"
+          },
+          "userAgent": {
+            ".validate": "newData.isString() && newData.val().length <= 160"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
     }
   }
 }
